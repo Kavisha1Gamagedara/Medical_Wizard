@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { doctorService } from '../services/api';
 import BookAppointmentModal from './BookAppointmentModal';
+import DoctorAvailabilityModal from './DoctorAvailabilityModal';
 
 const SPECIALTY_FILTERS = [
   { id: 'all', label: 'All Specialists' },
@@ -34,6 +35,10 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated }) {
   // Selected doctor for booking modal
   const [activeDoctorToBook, setActiveDoctorToBook] = useState(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+  // Selected doctor for availability configuration modal
+  const [activeDoctorForAvailability, setActiveDoctorForAvailability] = useState(null);
+  const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -208,16 +213,36 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated }) {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="btn-book-doctor"
-                  onClick={() => handleOpenBooking(doc)}
-                  id={`btn-book-${doc.username}`}
-                >
-                  <Calendar size={16} />
-                  <span>Book Appointment</span>
-                  <ArrowRight size={15} />
-                </button>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-book-doctor"
+                    style={{ flex: 1, margin: 0 }}
+                    onClick={() => handleOpenBooking(doc)}
+                    id={`btn-book-${doc.username}`}
+                  >
+                    <Calendar size={15} />
+                    <span>Book Appointment</span>
+                    <ArrowRight size={14} />
+                  </button>
+
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'staff' || (currentUser?.role === 'doctor' && currentUser?.id === doc.id)) && (
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      style={{ padding: '0 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}
+                      onClick={() => {
+                        setActiveDoctorForAvailability(doc);
+                        setIsAvailabilityModalOpen(true);
+                      }}
+                      title="Set available hours & max daily appointments capacity"
+                      id={`btn-availability-${doc.username}`}
+                    >
+                      <Clock size={14} />
+                      <span>Availability</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -231,6 +256,17 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated }) {
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         onBookingSuccess={handleBookingSuccess}
+      />
+
+      {/* Doctor Availability & Daily Capacity Modal */}
+      <DoctorAvailabilityModal
+        doctor={activeDoctorForAvailability}
+        currentUser={currentUser}
+        isOpen={isAvailabilityModalOpen}
+        onClose={() => {
+          setIsAvailabilityModalOpen(false);
+          setActiveDoctorForAvailability(null);
+        }}
       />
     </div>
   );

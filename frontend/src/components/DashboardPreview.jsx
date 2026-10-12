@@ -14,15 +14,18 @@ import {
   Edit3,
   Phone,
   FileText,
-  Sparkles
+  Sparkles,
+  Clock
 } from 'lucide-react';
 import { authService } from '../services/api';
 import ProfileEditModal from './ProfileEditModal';
 import AdminUsersManager from './AdminUsersManager';
+import DoctorAvailabilityModal from './DoctorAvailabilityModal';
 
 export default function DashboardPreview({ user, onLogout, onNavigate }) {
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
 
   const isAdmin = currentUser.role === 'admin';
   const isDoctor = currentUser.role === 'doctor';
@@ -162,6 +165,26 @@ export default function DashboardPreview({ user, onLogout, onNavigate }) {
                   <span>My Appointments</span>
                 </button>
               </>
+            )}
+            {isDoctor && (
+              <button
+                type="button"
+                className="btn-submit"
+                style={{
+                  margin: 0,
+                  width: 'auto',
+                  padding: '10px 18px',
+                  fontSize: '0.86rem',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(13, 148, 136, 0.35))',
+                  border: '1px solid var(--emerald-accent)',
+                  color: '#6ee7b7'
+                }}
+                onClick={() => setIsAvailabilityModalOpen(true)}
+                id="btn-open-doctor-availability"
+              >
+                <Clock size={15} />
+                <span>My Availability &amp; Capacity</span>
+              </button>
             )}
             <button
               type="button"
@@ -376,6 +399,14 @@ export default function DashboardPreview({ user, onLogout, onNavigate }) {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onProfileUpdated={handleProfileUpdated}
+      />
+
+      {/* Doctor Availability & Daily Capacity Modal */}
+      <DoctorAvailabilityModal
+        doctor={currentUser}
+        currentUser={currentUser}
+        isOpen={isAvailabilityModalOpen}
+        onClose={() => setIsAvailabilityModalOpen(false)}
       />
     </div>
   );

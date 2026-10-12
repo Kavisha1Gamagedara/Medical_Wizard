@@ -159,6 +159,45 @@ def seed():
         else:
             print("Appointments already exist, skipping duplicate appointment creation.")
 
+        # Seed sample doctor availability schedules & daily capacities
+        from app.models.doctor_availability import DoctorAvailability
+        print("Checking doctor availability schedules...")
+        tomorrow_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        day_after_str = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        
+        doctor_users = db.query(User).filter(User.role == "doctor").all()
+        for doc in doctor_users:
+            existing_avail = db.query(DoctorAvailability).filter(DoctorAvailability.doctor_id == doc.id).first()
+            if not existing_avail:
+                # Add default recurring rule
+                default_rule = DoctorAvailability(
+                    doctor_id=doc.id,
+                    doctor_name=doc.full_name or f"Dr. {doc.username}",
+                    day_of_week="ALL",
+                    start_time="09:00",
+                    end_time="17:00",
+                    slot_duration_minutes=30,
+                    max_appointments=8,
+                    is_available=True,
+                    notes=f"Standard clinical consultation schedule for {doc.specialization or 'general practice'}.",
+                )
+                db.add(default_rule)
+                # Add a date-specific custom rule for tomorrow
+                tomorrow_rule = DoctorAvailability(
+                    doctor_id=doc.id,
+                    doctor_name=doc.full_name or f"Dr. {doc.username}",
+                    specific_date=tomorrow_str,
+                    start_time="09:00",
+                    end_time="16:00",
+                    slot_duration_minutes=30,
+                    max_appointments=6,
+                    is_available=True,
+                    notes=f"Focused outpatient clinic ({doc.specialization}). Maximum 6 appointments accepted.",
+                )
+                db.add(tomorrow_rule)
+                print(f"Seeded availability & capacity rules for {doc.full_name}")
+        db.commit()
+
         print("Seeding completed successfully.")
     finally:
         db.close()

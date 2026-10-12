@@ -82,6 +82,47 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
             detail="Invalid appointment date: Appointments cannot be scheduled for a past date or time. Please choose an upcoming date and time.",
         )
 
+    # Verify doctor daily appointment capacity and available working hours
+    from app.services import availability_service
+    target_date_str = norm_datetime.strftime("%Y-%m-%d")
+    day_schedule = availability_service.get_doctor_day_schedule(
+        db=db, doctor_identifier=appointment_in.doctor, target_date_str=target_date_str
+    )
+
+    if not day_schedule.is_available:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Doctor Unavailable: {day_schedule.doctor_name} is marked unavailable on {target_date_str}.",
+        )
+
+    if day_schedule.is_capacity_reached:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Booking Limit Reached: {day_schedule.doctor_name} has set a maximum limit of "
+                f"{day_schedule.max_appointments} appointments for {target_date_str} and is fully booked."
+            ),
+        )
+
+    # If doctor has custom working hours rule, enforce hours strictly
+    doc_user = availability_service.find_doctor_user(db, appointment_in.doctor)
+    if doc_user:
+        custom_rule = availability_service.get_doctor_availability_rule(
+            db=db, doctor_id=doc_user.id, target_date=norm_datetime.date()
+        )
+        if custom_rule:
+            t_start = availability_service.parse_time_str(custom_rule.start_time)
+            t_end = availability_service.parse_time_str(custom_rule.end_time)
+            appt_time = norm_datetime.time()
+            if appt_time < t_start or appt_time >= t_end:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Outside Working Hours: {custom_rule.doctor_name} is only available between "
+                        f"{custom_rule.start_time} and {custom_rule.end_time} on {target_date_str}."
+                    ),
+                )
+
     # Strictly verify collision for the chosen doctor
     conflict = check_doctor_schedule_conflict(
         db=db,

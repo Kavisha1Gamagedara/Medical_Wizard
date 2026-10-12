@@ -104,6 +104,28 @@ export const doctorService = {
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return await apiRequest(`/api/v1/doctors${queryString}`);
   },
+
+  async getDoctorSchedule(doctorIdentifier, dateStr) {
+    return await apiRequest(`/api/v1/doctors/${encodeURIComponent(doctorIdentifier)}/schedule?date=${encodeURIComponent(dateStr)}`);
+  },
+
+  async getDoctorAvailabilities(doctorIdentifier = null) {
+    const query = doctorIdentifier ? `?doctor=${encodeURIComponent(doctorIdentifier)}` : '';
+    return await apiRequest(`/api/v1/doctors/availabilities${query}`);
+  },
+
+  async saveDoctorAvailability(data) {
+    return await apiRequest('/api/v1/doctors/availabilities', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteDoctorAvailability(id) {
+    return await apiRequest(`/api/v1/doctors/availabilities/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export const appointmentService = {

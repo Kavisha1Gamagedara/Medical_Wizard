@@ -11,7 +11,7 @@ import {
   Sparkles,
   ArrowRight
 } from 'lucide-react';
-import { appointmentService } from '../services/api';
+import { appointmentService, doctorService } from '../services/api';
 
 const APPOINTMENT_TYPES = [
   'General Consultation',
@@ -59,6 +59,15 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     return parsed < (Date.now() - 30000);
   };
 
+  const formatTimeLabel = (timeStr) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hourNum = parseInt(h, 10);
+    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+    const displayHour = hourNum % 12 || 12;
+    return `${displayHour}:${m} ${ampm}`;
+  };
+
   const [patientName, setPatientName] = useState(
     currentUser?.role === 'patient' 
       ? (currentUser.full_name || currentUser.username) 
@@ -76,8 +85,37 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(null);
 
+  // Doctor schedule & daily capacity state
+  const [daySchedule, setDaySchedule] = useState(null);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+
   // Derived validation: whether user has picked a past date/time
   const isPastSelected = isPastDateTime(appointmentDatetime);
+  const selectedDateStr = appointmentDatetime ? appointmentDatetime.slice(0, 10) : '';
+
+  // Fetch doctor's available times and daily appointment capacity for chosen date
+  useEffect(() => {
+    if (!selectedDateStr || !doctorName) {
+      setDaySchedule(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchSchedule = async () => {
+      setLoadingSchedule(true);
+      try {
+        const sched = await doctorService.getDoctorSchedule(doctorName, selectedDateStr);
+        if (isMounted) setDaySchedule(sched);
+      } catch (err) {
+        if (isMounted) setDaySchedule(null);
+      } finally {
+        if (isMounted) setLoadingSchedule(false);
+      }
+    };
+
+    fetchSchedule();
+    return () => { isMounted = false; };
+  }, [selectedDateStr, doctorName]);
 
   // Reset form values on modal open or doctor change
   useEffect(() => {
@@ -149,6 +187,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       return;
     }
 
+    if (daySchedule && daySchedule.is_available === false) {
+      setErrorMsg(`Doctor Unavailable: ${doctorName} is off-duty / unavailable on ${selectedDateStr}. Please select another date.`);
+      return;
+    }
+
+    if (daySchedule && daySchedule.is_capacity_reached) {
+      setErrorMsg(`Booking Limit Reached: ${doctorName} accepts a maximum of ${daySchedule.max_appointments} appointments on this date and is fully booked. Please select another date.`);
+      return;
+    }
+
     if (conflictWarning) {
       setErrorMsg(conflictWarning);
       return;
@@ -176,6 +224,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectSlot = (time24) => {
+    if (!selectedDateStr) return;
+    setAppointmentDatetime(`${selectedDateStr}T${time24}`);
+    setErrorMsg('');
   };
 
   const handleClose = () => {
@@ -387,6 +441,117 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   </span>
                 </div>
               )}
+
+              {/* Doctor Working Hours & Daily Appointment Capacity Widget */}
+              {daySchedule && (
+                <div style={{
+                  background: (daySchedule.is_capacity_reached || !daySchedule.is_available)
+                    ? 'rgba(239, 68, 68, 0.1)' 
+                    : 'rgba(6, 182, 212, 0.08)',
+                  border: `1px solid ${(daySchedule.is_capacity_reached || !daySchedule.is_available) ? 'rgba(239, 68, 68, 0.35)' : 'rgba(6, 182, 212, 0.25)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 16px',
+                  marginTop: '10px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: (daySchedule.is_capacity_reached || !daySchedule.is_available) ? '#f87171' : 'var(--text-accent)' }}>
+                      <Clock size={14} />
+                      <span>Doctor Working Hours: {formatTimeLabel(daySchedule.start_time)} - {formatTimeLabel(daySchedule.end_time)}</span>
+                    </div>
+
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      padding: '2px 10px',
+                      borderRadius: '10px',
+                      background: daySchedule.is_capacity_reached 
+                        ? 'rgba(239, 68, 68, 0.2)' 
+                        : (daySchedule.is_available ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)'),
+                      color: daySchedule.is_capacity_reached 
+                        ? '#fca5a5' 
+                        : (daySchedule.is_available ? 'var(--emerald-accent)' : '#fca5a5')
+                    }}>
+                      {daySchedule.is_capacity_reached 
+                        ? `Fully Booked (${daySchedule.booked_count}/${daySchedule.max_appointments} capacity)` 
+                        : (daySchedule.is_available 
+                            ? `${daySchedule.remaining_slots} of ${daySchedule.max_appointments} appointments available` 
+                            : 'Off-Duty / Unavailable')}
+                    </span>
+                  </div>
+
+                  {daySchedule.notes && (
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '8px', fontStyle: 'italic' }}>
+                      Schedule note: {daySchedule.notes}
+                    </div>
+                  )}
+
+                  {/* Unavailable / Capacity Reached Alert */}
+                  {!daySchedule.is_available && (
+                    <div style={{ color: '#f87171', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                      <AlertCircle size={14} />
+                      <span>{doctorName} is not available for consultations on this date. Please select another date.</span>
+                    </div>
+                  )}
+
+                  {daySchedule.is_capacity_reached && daySchedule.is_available && (
+                    <div style={{ color: '#f87171', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                      <AlertCircle size={14} />
+                      <span>Daily limit reached: {doctorName} accepts a maximum of {daySchedule.max_appointments} appointments for this date and is fully booked. Please select another date.</span>
+                    </div>
+                  )}
+
+                  {/* Interactive Time Slot Pills */}
+                  {daySchedule.is_available && !daySchedule.is_capacity_reached && daySchedule.time_slots?.length > 0 && (
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Click to select an available consultation slot:
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '2px' }}>
+                        {daySchedule.time_slots.map((slot) => {
+                          const isSelected = appointmentDatetime === `${selectedDateStr}T${slot.time}`;
+                          return (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              disabled={!slot.available}
+                              onClick={() => handleSelectSlot(slot.time)}
+                              style={{
+                                padding: '5px 9px',
+                                fontSize: '0.74rem',
+                                borderRadius: '6px',
+                                border: isSelected 
+                                  ? '1px solid var(--primary)' 
+                                  : (slot.available ? '1px solid var(--border-subtle)' : '1px solid rgba(255,255,255,0.06)'),
+                                background: isSelected 
+                                  ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(13, 148, 136, 0.45))' 
+                                  : (slot.available ? 'var(--bg-surface)' : 'rgba(0,0,0,0.25)'),
+                                color: isSelected 
+                                  ? '#fff' 
+                                  : (slot.available ? 'var(--text-primary)' : 'var(--text-muted)'),
+                                cursor: slot.available ? 'pointer' : 'not-allowed',
+                                opacity: slot.available ? 1 : 0.45,
+                                fontWeight: isSelected ? 700 : 500,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                textDecoration: slot.reason === 'booked' ? 'line-through' : 'none'
+                              }}
+                              title={slot.reason === 'booked' ? 'Slot already booked' : (slot.reason === 'past' ? 'Past time' : `Book consultation at ${slot.label}`)}
+                            >
+                              {slot.label}
+                              {isSelected && <CheckCircle2 size={12} color="var(--emerald-accent)" />}
+                              {!slot.available && slot.reason === 'booked' && (
+                                <span style={{ fontSize: '0.62rem', opacity: 0.8, color: '#f87171' }}>Booked</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {checkingAvailability && !isPastSelected && (
                 <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
@@ -455,10 +620,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   width: 'auto', 
                   padding: '10px 24px', 
                   margin: 0,
-                  opacity: (conflictWarning || isPastSelected || !appointmentDatetime) ? 0.45 : 1,
-                  cursor: (conflictWarning || isPastSelected || !appointmentDatetime) ? 'not-allowed' : 'pointer'
+                  opacity: (conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 0.45 : 1,
+                  cursor: (conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 'not-allowed' : 'pointer'
                 }}
-                disabled={loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime}
+                disabled={loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime || Boolean(daySchedule?.is_capacity_reached) || daySchedule?.is_available === false}
                 id="btn-confirm-booking"
                 title={isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined}
               >
