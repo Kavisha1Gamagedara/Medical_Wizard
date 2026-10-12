@@ -141,6 +141,15 @@ export const appointmentService = {
   async getStats() {
     return await apiRequest('/api/v1/appointments/stats');
   },
+
+  async checkAvailability(doctor, datetime, excludeId = null) {
+    const query = new URLSearchParams({
+      doctor,
+      datetime,
+    });
+    if (excludeId) query.append('exclude_appointment_id', excludeId);
+    return await apiRequest(`/api/v1/appointments/check-availability?${query.toString()}`);
+  },
 };
 
 export const userService = {

@@ -1,4 +1,5 @@
-from typing import List, Optional, Dict
+from datetime import datetime
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -92,6 +93,52 @@ def get_appointment_statistics(
         patient_filter = current_user.id
 
     return appointment_service.get_appointment_statistics(db=db, patient_id=patient_filter)
+
+
+@router.get("/check-availability", response_model=Dict[str, Any])
+def check_doctor_availability(
+    doctor: str = Query(..., description="Doctor name to check"),
+    datetime_str: str = Query(..., alias="datetime", description="Target appointment datetime ISO string"),
+    exclude_appointment_id: Optional[int] = Query(None, description="Exclude appointment ID during edit"),
+    db: Session = Depends(get_db),
+):
+    """
+    Check if a specific time slot is available for a doctor without schedule collisions.
+    """
+    try:
+        clean_str = datetime_str.strip().replace("Z", "+00:00")
+        if " " in clean_str and "T" in clean_str:
+            parts = clean_str.rsplit(" ", 1)
+            if len(parts) == 2 and ":" in parts[1]:
+                clean_str = f"{parts[0]}+{parts[1]}"
+        parsed_dt = datetime.fromisoformat(clean_str)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid datetime format. Expected ISO-8601 string (e.g. 2026-10-20T10:00:00).",
+        )
+
+    conflict = appointment_service.check_doctor_schedule_conflict(
+        db=db,
+        doctor=doctor,
+        target_time=parsed_dt,
+        exclude_appointment_id=exclude_appointment_id,
+    )
+
+    if conflict:
+        formatted = conflict.appointment_datetime.strftime("%Y-%m-%d %I:%M %p")
+        return {
+            "available": False,
+            "conflict_appointment_id": conflict.id,
+            "conflict_doctor": conflict.doctor,
+            "conflict_time": conflict.appointment_datetime.isoformat(),
+            "message": f"Schedule Conflict: {conflict.doctor} already has an appointment scheduled at {formatted} (ref #{conflict.id}).",
+        }
+
+    return {
+        "available": True,
+        "message": f"{doctor} is available for booking at this time.",
+    }
 
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)

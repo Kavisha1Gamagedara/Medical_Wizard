@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
@@ -6,6 +6,31 @@ from fastapi import HTTPException, status
 
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
+
+
+def normalize_to_utc_naive(dt: datetime) -> datetime:
+    """
+    Normalizes a datetime to UTC naive format for consistent storage and interval comparison in SQLite.
+    """
+    if dt is None:
+        return dt
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def normalize_doctor_name(doc: str) -> str:
+    """
+    Strips common prefixes ('Dr.', 'Dr ') and whitespace to ensure cross-format doctor matching.
+    """
+    if not doc:
+        return ""
+    cleaned = doc.strip()
+    if cleaned.lower().startswith("dr."):
+        cleaned = cleaned[3:].strip()
+    elif cleaned.lower().startswith("dr "):
+        cleaned = cleaned[3:].strip()
+    return cleaned
 
 
 def check_doctor_schedule_conflict(
@@ -18,12 +43,21 @@ def check_doctor_schedule_conflict(
     """
     Checks if a doctor has an overlapping scheduled appointment within slot_minutes.
     Excludes cancelled appointments and current appointment during updates.
+    Converts target_time to UTC naive to guarantee reliable database interval comparisons.
     """
-    start_window = target_time - timedelta(minutes=slot_minutes)
-    end_window = target_time + timedelta(minutes=slot_minutes)
+    target_utc_naive = normalize_to_utc_naive(target_time)
+    start_window = target_utc_naive - timedelta(minutes=slot_minutes)
+    end_window = target_utc_naive + timedelta(minutes=slot_minutes)
+
+    clean_name = normalize_doctor_name(doctor)
+
+    doctor_filter_clause = or_(
+        Appointment.doctor.ilike(doctor.strip()),
+        Appointment.doctor.ilike(f"%{clean_name}%") if clean_name else Appointment.doctor.ilike(doctor.strip()),
+    )
 
     query = db.query(Appointment).filter(
-        Appointment.doctor.ilike(doctor.strip()),
+        doctor_filter_clause,
         Appointment.status != "Cancelled",
         Appointment.appointment_datetime > start_window,
         Appointment.appointment_datetime < end_window,
@@ -36,23 +70,29 @@ def check_doctor_schedule_conflict(
 
 
 def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appointment:
-    # Verify conflict
+    # Normalize datetime to UTC naive
+    norm_datetime = normalize_to_utc_naive(appointment_in.appointment_datetime)
+
+    # Strictly verify collision for the chosen doctor
     conflict = check_doctor_schedule_conflict(
         db=db,
         doctor=appointment_in.doctor,
-        target_time=appointment_in.appointment_datetime,
+        target_time=norm_datetime,
     )
     if conflict:
         formatted_conflict = conflict.appointment_datetime.strftime("%Y-%m-%d %I:%M %p")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"{appointment_in.doctor} already has a scheduled appointment at {formatted_conflict}. Please choose a time at least 30 minutes apart.",
+            detail=(
+                f"Schedule Conflict: {conflict.doctor} already has a scheduled appointment at {formatted_conflict} "
+                f"(booking ref #{conflict.id}). Appointments cannot collide — please choose a time slot at least 30 minutes apart."
+            ),
         )
 
     db_appointment = Appointment(
         patient_id=appointment_in.patient_id,
         patient_name=appointment_in.patient_name.strip(),
-        appointment_datetime=appointment_in.appointment_datetime,
+        appointment_datetime=norm_datetime,
         doctor=appointment_in.doctor.strip(),
         appointment_type=appointment_in.appointment_type.strip(),
         status=appointment_in.status or "Scheduled",
@@ -123,7 +163,11 @@ def update_appointment(
 
     # If updating datetime or doctor, check conflict
     new_doc = appointment_in.doctor or apt.doctor
-    new_dt = appointment_in.appointment_datetime or apt.appointment_datetime
+    new_dt = (
+        normalize_to_utc_naive(appointment_in.appointment_datetime)
+        if appointment_in.appointment_datetime is not None
+        else apt.appointment_datetime
+    )
     
     if (appointment_in.doctor or appointment_in.appointment_datetime) and (
         appointment_in.status != "Cancelled" and apt.status != "Cancelled"
@@ -138,12 +182,14 @@ def update_appointment(
             formatted_conflict = conflict.appointment_datetime.strftime("%Y-%m-%d %I:%M %p")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"{new_doc} already has a scheduled appointment at {formatted_conflict}. Please choose another time.",
+                detail=f"Schedule Conflict: {new_doc} already has an appointment at {formatted_conflict}. Please choose another time.",
             )
 
     update_data = appointment_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         if value is not None:
+            if field == "appointment_datetime":
+                value = normalize_to_utc_naive(value)
             setattr(apt, field, value)
 
     db.add(apt)

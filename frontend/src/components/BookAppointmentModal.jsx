@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Calendar, 
@@ -48,7 +48,36 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [conflictWarning, setConflictWarning] = useState('');
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(null);
+
+  // Live schedule collision check whenever doctor or datetime changes
+  useEffect(() => {
+    if (!appointmentDatetime || !doctorName) {
+      setConflictWarning('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingAvailability(true);
+      try {
+        const iso = new Date(appointmentDatetime).toISOString();
+        const res = await appointmentService.checkAvailability(doctorName, iso);
+        if (!res.available) {
+          setConflictWarning(res.message);
+        } else {
+          setConflictWarning('');
+        }
+      } catch (err) {
+        // Silently ignore check errors
+      } finally {
+        setCheckingAvailability(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [appointmentDatetime, doctorName]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,6 +90,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
     if (!appointmentDatetime) {
       setErrorMsg('Please select appointment date and time.');
+      return;
+    }
+
+    if (conflictWarning) {
+      setErrorMsg(conflictWarning);
       return;
     }
 
@@ -266,9 +300,26 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 />
                 <Clock size={18} className="input-icon" />
               </div>
-              <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
-                Automated conflict detection prevents overlapping appointments for this specialist.
-              </small>
+              
+              {checkingAvailability && (
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
+                  Checking doctor schedule availability...
+                </small>
+              )}
+
+              {conflictWarning && (
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  <span>{conflictWarning}</span>
+                </div>
+              )}
+
+              {!conflictWarning && !checkingAvailability && appointmentDatetime && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
+                  <CheckCircle2 size={14} />
+                  <span>Schedule verified: No collisions for {doctorName} at this time.</span>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -313,14 +364,20 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               <button
                 type="submit"
                 className="btn-submit"
-                style={{ width: 'auto', padding: '10px 24px', margin: 0 }}
-                disabled={loading}
+                style={{ 
+                  width: 'auto', 
+                  padding: '10px 24px', 
+                  margin: 0,
+                  opacity: conflictWarning ? 0.45 : 1,
+                  cursor: conflictWarning ? 'not-allowed' : 'pointer'
+                }}
+                disabled={loading || Boolean(conflictWarning)}
                 id="btn-confirm-booking"
               >
                 {loading ? (
                   <>
                     <span className="spinner" />
-                    <span>Checking availability...</span>
+                    <span>Scheduling...</span>
                   </>
                 ) : (
                   <>
