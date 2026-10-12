@@ -233,3 +233,74 @@ def test_check_availability_endpoint(client):
     assert res_conflict.status_code == status.HTTP_200_OK
     assert res_conflict.json()["available"] is False
     assert "Schedule Conflict" in res_conflict.json()["message"]
+
+
+def test_cannot_create_appointment_in_past(client):
+    """Test that attempting to create an appointment for a past date or time is rejected with 400 Bad Request."""
+    past_dt = datetime.now(timezone.utc) - timedelta(days=2)
+
+    res = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_name": "Past Time Patient",
+            "doctor": "Dr. Sarah Smith",
+            "appointment_datetime": past_dt.isoformat(),
+            "appointment_type": "Specialist Consultation",
+            "status": "Scheduled",
+            "notes": "Attempting to book in past",
+        },
+    )
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+    assert "past date or time" in res.json()["detail"].lower()
+
+
+def test_cannot_reschedule_appointment_to_past(client):
+    """Test that updating an existing appointment to a past date or time is rejected with 400 Bad Request."""
+    future_dt = datetime.now(timezone.utc) + timedelta(days=10)
+
+    # 1. Create a valid future appointment
+    create_res = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_name": "Future Reschedule Patient",
+            "doctor": "Dr. Emily Jones",
+            "appointment_datetime": future_dt.isoformat(),
+            "appointment_type": "Dental Checkup",
+            "status": "Scheduled",
+        },
+    )
+    assert create_res.status_code == status.HTTP_201_CREATED
+    apt_id = create_res.json()["id"]
+
+    # 2. Try to reschedule to yesterday
+    past_dt = datetime.now(timezone.utc) - timedelta(days=1)
+    update_res = client.put(
+        "/api/v1/appointments",
+        json={
+            "id": apt_id,
+            "appointment_datetime": past_dt.isoformat(),
+        },
+    )
+    # The endpoint is PUT /api/v1/appointments/{appointment_id}
+    update_res = client.put(
+        f"/api/v1/appointments/{apt_id}",
+        json={
+            "appointment_datetime": past_dt.isoformat(),
+        },
+    )
+    assert update_res.status_code == status.HTTP_400_BAD_REQUEST
+    assert "past date or time" in update_res.json()["detail"].lower()
+
+
+def test_check_availability_flags_past_datetime(client):
+    """Test that /check-availability flags past dates/times as unavailable."""
+    past_dt = datetime.now(timezone.utc) - timedelta(hours=5)
+
+    res = client.get(
+        f"/api/v1/appointments/check-availability?doctor=Dr.%20Sarah%20Smith&datetime={past_dt.isoformat()}"
+    )
+    assert res.status_code == status.HTTP_200_OK
+    data = res.json()
+    assert data["available"] is False
+    assert data.get("is_past") is True
+    assert "in the past" in data["message"].lower()

@@ -73,6 +73,15 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
     # Normalize datetime to UTC naive
     norm_datetime = normalize_to_utc_naive(appointment_in.appointment_datetime)
 
+    # Validate that appointment is not scheduled for a past date or time
+    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    # Allow 2 minutes grace period for clock skew / submission latency
+    if norm_datetime < (now_utc_naive - timedelta(minutes=2)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid appointment date: Appointments cannot be scheduled for a past date or time. Please choose an upcoming date and time.",
+        )
+
     # Strictly verify collision for the chosen doctor
     conflict = check_doctor_schedule_conflict(
         db=db,
@@ -169,6 +178,17 @@ def update_appointment(
         else apt.appointment_datetime
     )
     
+    # If updating datetime, verify it is not in the past (unless cancelling)
+    if appointment_in.appointment_datetime is not None and (
+        appointment_in.status != "Cancelled" and apt.status != "Cancelled"
+    ):
+        now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+        if new_dt < (now_utc_naive - timedelta(minutes=2)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid appointment date: Appointments cannot be rescheduled to a past date or time. Please choose an upcoming date and time.",
+            )
+
     if (appointment_in.doctor or appointment_in.appointment_datetime) and (
         appointment_in.status != "Cancelled" and apt.status != "Cancelled"
     ):

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
@@ -117,6 +117,16 @@ def check_doctor_availability(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid datetime format. Expected ISO-8601 string (e.g. 2026-10-20T10:00:00).",
         )
+
+    # Check if requested time is in the past (with 2 min buffer)
+    target_utc_naive = appointment_service.normalize_to_utc_naive(parsed_dt)
+    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    if target_utc_naive < (now_utc_naive - timedelta(minutes=2)):
+        return {
+            "available": False,
+            "is_past": True,
+            "message": "Selected appointment date and time is in the past. Appointments must be scheduled for an upcoming date and time.",
+        }
 
     conflict = appointment_service.check_doctor_schedule_conflict(
         db=db,

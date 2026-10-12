@@ -27,12 +27,36 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
   const doctorName = doctor.full_name || `Dr. ${doctor.username}`;
   
-  // Format default datetime to tomorrow 10:00 AM
+  // Format Date to local 'YYYY-MM-DDTHH:mm' string for datetime-local input
+  const formatToLocalDateTime = (date) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const h = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${y}-${m}-${d}T${h}:${min}`;
+  };
+
+  // Default datetime to tomorrow at 10:00 AM local time
   const getTomorrowDefault = () => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     d.setHours(10, 0, 0, 0);
-    return d.toISOString().slice(0, 16);
+    return formatToLocalDateTime(d);
+  };
+
+  // Minimum allowed datetime (now)
+  const getMinLocalDateTime = () => {
+    return formatToLocalDateTime(new Date());
+  };
+
+  // Check if chosen datetime is in the past (with 30-sec safety buffer)
+  const isPastDateTime = (dtStr) => {
+    if (!dtStr) return false;
+    const parsed = new Date(dtStr).getTime();
+    if (isNaN(parsed)) return false;
+    return parsed < (Date.now() - 30000);
   };
 
   const [patientName, setPatientName] = useState(
@@ -52,10 +76,37 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(null);
 
-  // Live schedule collision check whenever doctor or datetime changes
+  // Derived validation: whether user has picked a past date/time
+  const isPastSelected = isPastDateTime(appointmentDatetime);
+
+  // Reset form values on modal open or doctor change
+  useEffect(() => {
+    if (isOpen) {
+      setAppointmentDatetime(getTomorrowDefault());
+      setErrorMsg('');
+      setConflictWarning('');
+      setBookingConfirmed(null);
+      if (currentUser?.role === 'patient') {
+        setPatientName(currentUser.full_name || currentUser.username);
+      }
+      if (doctor?.specialization === 'Dentist') {
+        setAppointmentType('Dental Checkup');
+      } else {
+        setAppointmentType('Specialist Consultation');
+      }
+    }
+  }, [isOpen, doctor?.username, currentUser?.id]);
+
+  // Live schedule collision check whenever doctor or datetime changes (skips past dates)
   useEffect(() => {
     if (!appointmentDatetime || !doctorName) {
       setConflictWarning('');
+      return;
+    }
+
+    if (isPastSelected) {
+      setConflictWarning('');
+      setCheckingAvailability(false);
       return;
     }
 
@@ -77,7 +128,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [appointmentDatetime, doctorName]);
+  }, [appointmentDatetime, doctorName, isPastSelected]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,6 +141,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
     if (!appointmentDatetime) {
       setErrorMsg('Please select appointment date and time.');
+      return;
+    }
+
+    if (isPastDateTime(appointmentDatetime)) {
+      setErrorMsg('Invalid Appointment Time: Appointments cannot be scheduled for a past date or time. Please select an upcoming date and time.');
       return;
     }
 
@@ -293,28 +349,59 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   id="book-datetime"
                   type="datetime-local"
                   className="form-input"
+                  min={getMinLocalDateTime()}
                   value={appointmentDatetime}
-                  onChange={(e) => setAppointmentDatetime(e.target.value)}
-                  style={{ colorScheme: 'dark' }}
+                  onChange={(e) => {
+                    setAppointmentDatetime(e.target.value);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  style={{ 
+                    colorScheme: 'dark',
+                    borderColor: isPastSelected ? 'rgba(239, 68, 68, 0.75)' : undefined,
+                    boxShadow: isPastSelected ? '0 0 0 2px rgba(239, 68, 68, 0.25)' : undefined,
+                  }}
                   required
                 />
                 <Clock size={18} className="input-icon" />
               </div>
+
+              {/* Past Date & Time Validation Alert */}
+              {isPastSelected && (
+                <div 
+                  id="past-datetime-warning"
+                  className="alert-box alert-danger" 
+                  style={{ 
+                    marginTop: '8px', 
+                    padding: '10px 14px', 
+                    fontSize: '0.82rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.45)',
+                    background: 'rgba(239, 68, 68, 0.12)'
+                  }}
+                >
+                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span style={{ color: '#fca5a5', fontWeight: 600 }}>
+                    Past Date Warning: An appointment cannot be booked for a past date or time. Please select an upcoming slot.
+                  </span>
+                </div>
+              )}
               
-              {checkingAvailability && (
+              {checkingAvailability && !isPastSelected && (
                 <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
                   Checking doctor schedule availability...
                 </small>
               )}
 
-              {conflictWarning && (
+              {conflictWarning && !isPastSelected && (
                 <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertCircle size={16} />
                   <span>{conflictWarning}</span>
                 </div>
               )}
 
-              {!conflictWarning && !checkingAvailability && appointmentDatetime && (
+              {!conflictWarning && !checkingAvailability && !isPastSelected && appointmentDatetime && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
                   <CheckCircle2 size={14} />
                   <span>Schedule verified: No collisions for {doctorName} at this time.</span>
@@ -368,11 +455,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   width: 'auto', 
                   padding: '10px 24px', 
                   margin: 0,
-                  opacity: conflictWarning ? 0.45 : 1,
-                  cursor: conflictWarning ? 'not-allowed' : 'pointer'
+                  opacity: (conflictWarning || isPastSelected || !appointmentDatetime) ? 0.45 : 1,
+                  cursor: (conflictWarning || isPastSelected || !appointmentDatetime) ? 'not-allowed' : 'pointer'
                 }}
-                disabled={loading || Boolean(conflictWarning)}
+                disabled={loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime}
                 id="btn-confirm-booking"
+                title={isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined}
               >
                 {loading ? (
                   <>
