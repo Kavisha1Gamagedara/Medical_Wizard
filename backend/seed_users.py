@@ -1,9 +1,11 @@
 """
-Seed script to create default test users for development & review.
+Seed script to create default test users and sample appointments for development & review.
 """
+from datetime import datetime, timedelta, timezone
 from app.core.database import SessionLocal, engine, Base
 import app.models
 from app.models.user import User
+from app.models.appointment import Appointment
 from app.core.security import get_password_hash
 
 
@@ -30,7 +32,7 @@ def seed():
                 "role": "doctor",
                 "specialization": "Neurosurgeon",
                 "phone_number": "+61 3 9876 5433",
-                "bio": "Senior Consultant Neurosurgeon specializing in cranial and spinal microsurgery.",
+                "bio": "Senior Consultant Neurosurgeon specializing in cranial surgery, spinal reconstruction, and neuro-oncology.",
             },
             {
                 "email": "dr.jones@medicalwizard.com.au",
@@ -40,7 +42,27 @@ def seed():
                 "role": "doctor",
                 "specialization": "Dentist",
                 "phone_number": "+61 3 9876 5434",
-                "bio": "General and Cosmetic Dentist specializing in restorative oral health.",
+                "bio": "Dental Surgeon with expertise in restorative dentistry, cosmetic veneers, and oral hygiene rehabilitation.",
+            },
+            {
+                "email": "dr.chen@medicalwizard.com.au",
+                "username": "drchen",
+                "password": "DoctorPassword123!",
+                "full_name": "Dr. Robert Chen",
+                "role": "doctor",
+                "specialization": "Cardiologist",
+                "phone_number": "+61 3 9876 5435",
+                "bio": "Consultant Interventional Cardiologist specializing in hypertension, preventative cardiology, and coronary angioplasty.",
+            },
+            {
+                "email": "dr.ray@medicalwizard.com.au",
+                "username": "drray",
+                "password": "DoctorPassword123!",
+                "full_name": "Dr. Lisa Ray",
+                "role": "doctor",
+                "specialization": "Pediatrician",
+                "phone_number": "+61 3 9876 5436",
+                "bio": "Specialist Pediatrician committed to adolescent health, developmental assessments, and child wellness.",
             },
             {
                 "email": "reception@medicalwizard.com.au",
@@ -51,6 +73,16 @@ def seed():
                 "specialization": None,
                 "phone_number": "+61 3 9876 5430",
                 "bio": "Central Reception and appointment intake coordination team.",
+            },
+            {
+                "email": "alice.patient@example.com",
+                "username": "patient",
+                "password": "PatientPassword123!",
+                "full_name": "Alice Walker",
+                "role": "patient",
+                "specialization": None,
+                "phone_number": "+61 411 222 333",
+                "bio": "Registered clinical patient with ongoing care plan.",
             },
         ]
 
@@ -79,6 +111,54 @@ def seed():
                 db.add(existing)
                 print(f"Updated user profile: {u['username']} - Spec: {u.get('specialization')}")
         db.commit()
+
+        # Seed sample appointments
+        now = datetime.now(timezone.utc)
+        sample_appointments = [
+            {
+                "patient_name": "John Doe",
+                "doctor": "Dr. Sarah Smith",
+                "appointment_datetime": now + timedelta(days=1, hours=2),
+                "appointment_type": "Specialist Consultation",
+                "status": "Scheduled",
+                "notes": "Referred for recurring cervical spine pain assessment.",
+            },
+            {
+                "patient_name": "Maria Garcia",
+                "doctor": "Dr. Emily Jones",
+                "appointment_datetime": now + timedelta(days=2, hours=4),
+                "appointment_type": "Dental Checkup",
+                "status": "Scheduled",
+                "notes": "Bi-annual routine clean and filling evaluation.",
+            },
+            {
+                "patient_name": "Michael Brown",
+                "doctor": "Dr. Robert Chen",
+                "appointment_datetime": now - timedelta(days=1, hours=3),
+                "appointment_type": "Cardiac Follow-up",
+                "status": "Completed",
+                "notes": "Post-angioplasty medication adjustment; blood pressure stable.",
+            },
+            {
+                "patient_name": "Emma Wilson",
+                "doctor": "Dr. Lisa Ray",
+                "appointment_datetime": now + timedelta(days=3, hours=1),
+                "appointment_type": "Pediatric Wellness",
+                "status": "Scheduled",
+                "notes": "Annual child developmental milestone review.",
+            },
+        ]
+
+        print("Checking sample appointments...")
+        if db.query(Appointment).count() == 0:
+            for apt_data in sample_appointments:
+                apt = Appointment(**apt_data)
+                db.add(apt)
+            db.commit()
+            print(f"Seeded {len(sample_appointments)} sample appointments.")
+        else:
+            print("Appointments already exist, skipping duplicate appointment creation.")
+
         print("Seeding completed successfully.")
     finally:
         db.close()

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class AppointmentBase(BaseModel):
+    patient_id: Optional[int] = None
     patient_name: str = Field(..., min_length=2, max_length=200)
     appointment_datetime: datetime
     doctor: str = Field(..., min_length=2, max_length=200)

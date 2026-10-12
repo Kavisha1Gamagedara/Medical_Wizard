@@ -4,6 +4,7 @@ from app.schemas.user import (
     UserLogin,
     UserProfileUpdate,
     UserResponse,
+    DoctorResponse,
     Token,
     TokenPayload,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "UserCreate",
     "UserLogin",
     "UserResponse",
+    "DoctorResponse",
     "Token",
     "TokenPayload",
     "AppointmentBase",

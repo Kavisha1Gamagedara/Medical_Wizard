@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     full_name: Optional[str] = Field(None, max_length=150)
-    role: Optional[str] = Field("staff", pattern=r"^(admin|doctor|staff)$")
+    role: Optional[str] = Field("patient", pattern=r"^(admin|doctor|staff|patient)$")
     specialization: Optional[str] = Field(None, max_length=100)  # E.g. Neurosurgeon, Dentist, Cardiologist
     phone_number: Optional[str] = Field(None, max_length=50)
     bio: Optional[str] = Field(None, max_length=500)
@@ -42,6 +42,19 @@ class UserResponse(BaseModel):
     bio: Optional[str] = None
     is_active: bool
     created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DoctorResponse(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    email: EmailStr
+    specialization: Optional[str] = None
+    phone_number: Optional[str] = None
+    bio: Optional[str] = None
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -5,6 +5,7 @@ import {
   ShieldCheck, 
   Stethoscope, 
   Users, 
+  User,
   Calendar, 
   Search, 
   Activity,
@@ -18,11 +19,12 @@ import {
 import { authService } from '../services/api';
 import ProfileEditModal from './ProfileEditModal';
 
-export default function DashboardPreview({ user, onLogout }) {
+export default function DashboardPreview({ user, onLogout, onNavigate }) {
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const isDoctor = currentUser.role === 'doctor';
+  const isPatient = currentUser.role === 'patient';
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -30,6 +32,8 @@ export default function DashboardPreview({ user, onLogout }) {
         return <ShieldCheck size={16} />;
       case 'doctor':
         return <Stethoscope size={16} />;
+      case 'patient':
+        return <User size={16} />;
       default:
         return <Users size={16} />;
     }
@@ -95,10 +99,10 @@ export default function DashboardPreview({ user, onLogout }) {
         {/* Verification Success Hero Banner */}
         <div className="welcome-banner">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <span className="badge-tag" style={{ margin: 0 }}>
                 <Activity size={13} />
-                Profile System Active
+                {isPatient ? 'Patient Healthcare Account' : 'Clinical System Active'}
               </span>
               {isDoctor && currentUser.specialization && (
                 <span className="badge-tag" style={{ margin: 0, background: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' }}>
@@ -106,14 +110,57 @@ export default function DashboardPreview({ user, onLogout }) {
                   {currentUser.specialization}
                 </span>
               )}
+              {isPatient && (
+                <span className="badge-tag" style={{ margin: 0, background: 'rgba(168, 85, 247, 0.12)', borderColor: 'rgba(168, 85, 247, 0.3)', color: '#d8b4fe' }}>
+                  <User size={13} />
+                  Patient ID #{currentUser.id}
+                </span>
+              )}
             </div>
             <h2>Welcome, {currentUser.full_name || currentUser.username}!</h2>
             <p>
-              Your clinical profile is fully authenticated and editable. Manage your personal details and clinical credentials below.
+              {isPatient 
+                ? 'Your patient profile is active. Book consultations with our medical specialists and view your scheduled appointments below.'
+                : 'Your clinical profile is fully authenticated and editable. Manage your personal details and clinical credentials below.'}
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {isPatient && onNavigate && (
+              <>
+                <button
+                  type="button"
+                  className="btn-submit"
+                  style={{
+                    margin: 0,
+                    width: 'auto',
+                    padding: '10px 18px',
+                    fontSize: '0.86rem',
+                    background: 'linear-gradient(135deg, #06b6d4, #0d9488)',
+                  }}
+                  onClick={() => onNavigate('doctors')}
+                  id="btn-patient-find-doctors"
+                >
+                  <Stethoscope size={15} />
+                  <span>Book Doctor</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  style={{
+                    margin: 0,
+                    width: 'auto',
+                    padding: '10px 18px',
+                    fontSize: '0.86rem',
+                  }}
+                  onClick={() => onNavigate('appointments')}
+                  id="btn-patient-view-appointments"
+                >
+                  <Calendar size={15} />
+                  <span>My Appointments</span>
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="btn-submit"

@@ -282,15 +282,16 @@ export default function LoginCard({ onLoginSuccess }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="reg-role">Role</label>
+            <label className="form-label" htmlFor="reg-role">Account Role</label>
             <select
               id="reg-role"
               className="form-input role-select"
               value={regRole}
               onChange={(e) => setRegRole(e.target.value)}
             >
-              <option value="staff">Staff / Reception</option>
+              <option value="patient">Patient (Personal Healthcare Account)</option>
               <option value="doctor">Doctor / Clinician</option>
+              <option value="staff">Staff / Reception</option>
               <option value="admin">System Administrator</option>
             </select>
           </div>
@@ -383,7 +384,18 @@ export default function LoginCard({ onLoginSuccess }) {
           <Sparkles size={14} color="var(--primary)" />
           <span>Quick Demo Logins (Click to autofill)</span>
         </div>
-        <div className="demo-role-buttons" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="demo-role-buttons" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))' }}>
+          <button
+            type="button"
+            className="demo-role-btn"
+            onClick={() => handleDemoFill('patient', 'patient', 'PatientPassword123!')}
+            style={{ borderColor: 'rgba(168, 85, 247, 0.4)' }}
+          >
+            <User size={15} color="#c084fc" />
+            <span style={{ color: '#d8b4fe' }}>Patient</span>
+            <small>Alice</small>
+          </button>
+
           <button
             type="button"
             className="demo-role-btn"
@@ -391,7 +403,7 @@ export default function LoginCard({ onLoginSuccess }) {
           >
             <Stethoscope size={15} color="var(--primary)" />
             <span>Doctor</span>
-            <small>Neurosurgeon</small>
+            <small>Neuro</small>
           </button>
 
           <button
@@ -407,21 +419,21 @@ export default function LoginCard({ onLoginSuccess }) {
           <button
             type="button"
             className="demo-role-btn"
-            onClick={() => handleDemoFill('admin', 'admin', 'AdminPassword123!')}
+            onClick={() => handleDemoFill('staff', 'reception', 'StaffPassword123!')}
           >
-            <ShieldCheck size={15} color="var(--danger)" />
-            <span>Admin</span>
-            <small>admin</small>
+            <Users size={15} color="var(--emerald-accent)" />
+            <span>Staff</span>
+            <small>Desk</small>
           </button>
 
           <button
             type="button"
             className="demo-role-btn"
-            onClick={() => handleDemoFill('staff', 'reception', 'StaffPassword123!')}
+            onClick={() => handleDemoFill('admin', 'admin', 'AdminPassword123!')}
           >
-            <Users size={15} color="var(--emerald-accent)" />
-            <span>Staff</span>
-            <small>reception</small>
+            <ShieldCheck size={15} color="var(--danger)" />
+            <span>Admin</span>
+            <small>Admin</small>
           </button>
         </div>
       </div>

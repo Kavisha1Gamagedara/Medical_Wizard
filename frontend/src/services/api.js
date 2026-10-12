@@ -91,3 +91,55 @@ export const authService = {
     return localStorage.getItem('mw_token');
   },
 };
+
+export const doctorService = {
+  async getDoctors(params = {}) {
+    const query = new URLSearchParams();
+    if (params.specialization && params.specialization !== 'all') {
+      query.append('specialization', params.specialization);
+    }
+    if (params.search) {
+      query.append('search', params.search);
+    }
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/doctors${queryString}`);
+  },
+};
+
+export const appointmentService = {
+  async getAppointments(params = {}) {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.doctor && params.doctor !== 'all') query.append('doctor', params.doctor);
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.patient_id) query.append('patient_id', params.patient_id);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/appointments${queryString}`);
+  },
+
+  async createAppointment(appointmentData) {
+    return await apiRequest('/api/v1/appointments', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
+    });
+  },
+
+  async updateAppointment(id, updateData) {
+    return await apiRequest(`/api/v1/appointments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  },
+
+  async deleteAppointment(id) {
+    return await apiRequest(`/api/v1/appointments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getStats() {
+    return await apiRequest('/api/v1/appointments/stats');
+  },
+};
+
