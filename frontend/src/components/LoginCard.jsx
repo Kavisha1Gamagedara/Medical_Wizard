@@ -29,6 +29,7 @@ export default function LoginCard({ onLoginSuccess }) {
   const [regFullName, setRegFullName] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regRole, setRegRole] = useState('staff');
+  const [regSpecialization, setRegSpecialization] = useState('Neurosurgeon');
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -85,6 +86,7 @@ export default function LoginCard({ onLoginSuccess }) {
         full_name: regFullName.trim() || undefined,
         password: regPassword,
         role: regRole,
+        specialization: regRole === 'doctor' ? regSpecialization : undefined,
       });
 
       setSuccessMsg(`Account created for ${regUsername}! Automatically signing in...`);
@@ -293,6 +295,35 @@ export default function LoginCard({ onLoginSuccess }) {
             </select>
           </div>
 
+          {regRole === 'doctor' && (
+            <div className="form-group" style={{ 
+              background: 'rgba(6, 182, 212, 0.08)', 
+              padding: '12px', 
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(6, 182, 212, 0.2)' 
+            }}>
+              <label className="form-label" htmlFor="reg-specialization" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Stethoscope size={15} color="var(--primary)" />
+                Doctor Specialization
+              </label>
+              <select
+                id="reg-specialization"
+                className="form-input role-select"
+                value={regSpecialization}
+                onChange={(e) => setRegSpecialization(e.target.value)}
+              >
+                <option value="Neurosurgeon">Neurosurgeon</option>
+                <option value="Dentist">Dentist</option>
+                <option value="Cardiologist">Cardiologist</option>
+                <option value="Dermatologist">Dermatologist</option>
+                <option value="Pediatrician">Pediatrician</option>
+                <option value="Orthopedic Surgeon">Orthopedic Surgeon</option>
+                <option value="General Practitioner">General Practitioner</option>
+                <option value="Psychiatrist">Psychiatrist</option>
+              </select>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label" htmlFor="reg-password">Password</label>
             <div className="input-with-icon">
@@ -352,15 +383,25 @@ export default function LoginCard({ onLoginSuccess }) {
           <Sparkles size={14} color="var(--primary)" />
           <span>Quick Demo Logins (Click to autofill)</span>
         </div>
-        <div className="demo-role-buttons">
+        <div className="demo-role-buttons" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <button
             type="button"
             className="demo-role-btn"
-            onClick={() => handleDemoFill('doctor', 'drsmith', 'DoctorPassword123!')}
+            onClick={() => handleDemoFill('neurosurgeon', 'drsmith', 'DoctorPassword123!')}
           >
-            <Stethoscope size={16} color="var(--primary)" />
+            <Stethoscope size={15} color="var(--primary)" />
             <span>Doctor</span>
-            <small>drsmith</small>
+            <small>Neurosurgeon</small>
+          </button>
+
+          <button
+            type="button"
+            className="demo-role-btn"
+            onClick={() => handleDemoFill('dentist', 'drjones', 'DoctorPassword123!')}
+          >
+            <Stethoscope size={15} color="var(--text-accent)" />
+            <span>Doctor</span>
+            <small>Dentist</small>
           </button>
 
           <button
@@ -368,7 +409,7 @@ export default function LoginCard({ onLoginSuccess }) {
             className="demo-role-btn"
             onClick={() => handleDemoFill('admin', 'admin', 'AdminPassword123!')}
           >
-            <ShieldCheck size={16} color="var(--danger)" />
+            <ShieldCheck size={15} color="var(--danger)" />
             <span>Admin</span>
             <small>admin</small>
           </button>
@@ -378,7 +419,7 @@ export default function LoginCard({ onLoginSuccess }) {
             className="demo-role-btn"
             onClick={() => handleDemoFill('staff', 'reception', 'StaffPassword123!')}
           >
-            <Users size={16} color="var(--emerald-accent)" />
+            <Users size={15} color="var(--emerald-accent)" />
             <span>Staff</span>
             <small>reception</small>
           </button>

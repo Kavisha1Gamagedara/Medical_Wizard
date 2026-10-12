@@ -14,6 +14,9 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     role = Column(String(50), default="staff", nullable=False)  # "admin", "doctor", "staff"
+    specialization = Column(String(100), nullable=True)  # For doctors: Neurosurgeon, Dentist, Cardiologist, etc.
+    phone_number = Column(String(50), nullable=True)
+    bio = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(

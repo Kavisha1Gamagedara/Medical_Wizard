@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import create_access_token
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
-from app.services.auth_service import create_user, authenticate_user
+from app.schemas.user import UserCreate, UserLogin, UserProfileUpdate, UserResponse, Token
+from app.services.auth_service import create_user, authenticate_user, update_user_profile
 from app.api.deps import get_current_user
 from app.models.user import User
 
@@ -95,3 +95,19 @@ def read_current_user_profile(
     Get profile information of the currently authenticated user.
     """
     return current_user
+
+
+@router.put("/profile", response_model=UserResponse)
+@router.put("/me", response_model=UserResponse)
+def update_profile(
+    profile_in: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update profile details for the currently authenticated user.
+    Allows editing full name, phone number, bio, and medical specialization (for doctors).
+    """
+    updated_user = update_user_profile(db=db, user=current_user, profile_in=profile_in)
+    return updated_user
+

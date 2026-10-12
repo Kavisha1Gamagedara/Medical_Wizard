@@ -8,6 +8,9 @@ class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     full_name: Optional[str] = Field(None, max_length=150)
     role: Optional[str] = Field("staff", pattern=r"^(admin|doctor|staff)$")
+    specialization: Optional[str] = Field(None, max_length=100)  # E.g. Neurosurgeon, Dentist, Cardiologist
+    phone_number: Optional[str] = Field(None, max_length=50)
+    bio: Optional[str] = Field(None, max_length=500)
 
 
 class UserCreate(UserBase):
@@ -20,12 +23,23 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, max_length=150)
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = Field(None, max_length=50)
+    specialization: Optional[str] = Field(None, max_length=100)
+    bio: Optional[str] = Field(None, max_length=500)
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
     username: str
     full_name: Optional[str] = None
     role: str
+    specialization: Optional[str] = None
+    phone_number: Optional[str] = None
+    bio: Optional[str] = None
     is_active: bool
     created_at: datetime
 

@@ -61,6 +61,17 @@ export const authService = {
     });
   },
 
+  async updateProfile(profileData) {
+    const data = await apiRequest('/api/v1/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+    if (data) {
+      localStorage.setItem('mw_user', JSON.stringify(data));
+    }
+    return data;
+  },
+
   logout() {
     localStorage.removeItem('mw_token');
     localStorage.removeItem('mw_user');

@@ -2,6 +2,7 @@ from app.schemas.user import (
     UserBase,
     UserCreate,
     UserLogin,
+    UserProfileUpdate,
     UserResponse,
     Token,
     TokenPayload,

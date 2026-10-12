@@ -60,3 +60,32 @@ def authenticate_user(
     if not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+def update_user_profile(
+    db: Session, user: User, profile_in
+) -> User:
+    """Updates user profile attributes including specialization, phone, and bio."""
+    if profile_in.email is not None and profile_in.email.lower() != user.email:
+        existing = db.query(User).filter(User.email == profile_in.email.lower()).first()
+        if existing and existing.id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email address already exists.",
+            )
+        user.email = profile_in.email.lower()
+
+    if profile_in.full_name is not None:
+        user.full_name = profile_in.full_name
+    if profile_in.phone_number is not None:
+        user.phone_number = profile_in.phone_number
+    if profile_in.specialization is not None:
+        user.specialization = profile_in.specialization
+    if profile_in.bio is not None:
+        user.bio = profile_in.bio
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+

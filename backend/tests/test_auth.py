@@ -171,3 +171,79 @@ def test_get_current_user_profile_protected(client):
     bad_headers = {"Authorization": "Bearer invalid.token.payload"}
     bad_res = client.get("/api/v1/auth/me", headers=bad_headers)
     assert bad_res.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_update_doctor_profile_specialization(client):
+    """Test doctor profile update specifically for medical specialization (Neurosurgeon, Dentist, etc.)."""
+    # 1. Register a doctor
+    doctor_payload = {
+        "email": "dr.house@medicalwizard.com.au",
+        "username": "drhouse",
+        "password": "HousePassword123!",
+        "full_name": "Dr. Gregory House",
+        "role": "doctor",
+    }
+    client.post("/api/v1/auth/register", json=doctor_payload)
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"username_or_email": "drhouse", "password": "HousePassword123!"},
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Update profile with specialization 'Neurosurgeon'
+    update_payload = {
+        "full_name": "Dr. Gregory House, MD",
+        "specialization": "Neurosurgeon",
+        "phone_number": "+61 412 345 678",
+        "bio": "Specialist in neurological diagnostic challenges and microsurgery.",
+    }
+    update_res = client.put("/api/v1/auth/profile", json=update_payload, headers=headers)
+    assert update_res.status_code == status.HTTP_200_OK
+    updated_data = update_res.json()
+    assert updated_data["specialization"] == "Neurosurgeon"
+    assert updated_data["full_name"] == "Dr. Gregory House, MD"
+    assert updated_data["phone_number"] == "+61 412 345 678"
+    assert updated_data["bio"] == "Specialist in neurological diagnostic challenges and microsurgery."
+
+    # 3. Verify changes persist by fetching /api/v1/auth/me
+    me_res = client.get("/api/v1/auth/me", headers=headers)
+    assert me_res.status_code == status.HTTP_200_OK
+    assert me_res.json()["specialization"] == "Neurosurgeon"
+
+    # 4. Change specialization to 'Dentist'
+    dentist_update = {"specialization": "Dentist"}
+    dentist_res = client.put("/api/v1/auth/profile", json=dentist_update, headers=headers)
+    assert dentist_res.status_code == status.HTTP_200_OK
+    assert dentist_res.json()["specialization"] == "Dentist"
+
+
+def test_update_staff_profile_contact(client):
+    """Test updating profile for general staff/reception user."""
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "staff.amy@medicalwizard.com.au",
+            "username": "amy_staff",
+            "password": "Password123!",
+            "role": "staff",
+        },
+    )
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"username_or_email": "amy_staff", "password": "Password123!"},
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    update_payload = {
+        "full_name": "Amy Farrah",
+        "phone_number": "+61 3 8888 9999",
+        "bio": "Appointment Scheduling Officer",
+    }
+    res = client.put("/api/v1/auth/profile", json=update_payload, headers=headers)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.json()["full_name"] == "Amy Farrah"
+    assert res.json()["phone_number"] == "+61 3 8888 9999"
+    assert res.json()["specialization"] is None
+

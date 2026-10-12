@@ -65,7 +65,21 @@ A clinical appointment scheduling and management system developed for the **Medi
 
 ## 🚀 Getting Started
 
-### 1. Backend Setup
+### ⚡ Option A: 1-Click Startup (Recommended for Windows)
+Simply double-click or run:
+```cmd
+start.bat
+```
+This script automatically:
+1. Verifies/creates the Python virtual environment and installs backend dependencies.
+2. Initializes and seeds the SQLite database with test doctors, admin, and reception accounts.
+3. Installs frontend dependencies (if missing).
+4. Launches FastAPI (port 8000) and React Vite (port 5173) in synchronized console windows.
+5. Opens your default browser directly to `http://localhost:5173/`.
+
+---
+
+### 🛠️ Option B: Manual Startup
 ```bash
 cd backend
 

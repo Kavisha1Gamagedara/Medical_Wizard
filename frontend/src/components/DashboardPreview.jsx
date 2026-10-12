@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   CheckCircle2, 
   LogOut, 
@@ -7,15 +7,23 @@ import {
   Users, 
   Calendar, 
   Search, 
-  Filter, 
-  Clock, 
   Activity,
   HeartPulse,
-  Database
+  Database,
+  Edit3,
+  Phone,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { authService } from '../services/api';
+import ProfileEditModal from './ProfileEditModal';
 
 export default function DashboardPreview({ user, onLogout }) {
+  const [currentUser, setCurrentUser] = useState(user);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const isDoctor = currentUser.role === 'doctor';
+
   const getRoleIcon = (role) => {
     switch (role) {
       case 'admin':
@@ -30,6 +38,10 @@ export default function DashboardPreview({ user, onLogout }) {
   const handleLogoutClick = () => {
     authService.logout();
     onLogout();
+  };
+
+  const handleProfileUpdated = (updatedUser) => {
+    setCurrentUser(updatedUser);
   };
 
   return (
@@ -49,16 +61,21 @@ export default function DashboardPreview({ user, onLogout }) {
         <div className="nav-user-panel">
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '0.88rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-              {user.full_name || user.username}
+              {currentUser.full_name || currentUser.username}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              {user.email}
+              {isDoctor && currentUser.specialization ? (
+                <span style={{ color: 'var(--text-accent)', fontWeight: '600' }}>
+                  {currentUser.specialization} &bull;{' '}
+                </span>
+              ) : null}
+              {currentUser.email}
             </div>
           </div>
 
-          <span className={`role-pill ${user.role}`}>
-            {getRoleIcon(user.role)}
-            <span style={{ marginLeft: '4px' }}>{user.role}</span>
+          <span className={`role-pill ${currentUser.role}`}>
+            {getRoleIcon(currentUser.role)}
+            <span style={{ marginLeft: '4px' }}>{currentUser.role}</span>
           </span>
 
           <button 
@@ -81,25 +98,51 @@ export default function DashboardPreview({ user, onLogout }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <span className="badge-tag" style={{ margin: 0 }}>
                 <Activity size={13} />
-                Step 1 Verification Complete
+                Profile System Active
               </span>
+              {isDoctor && currentUser.specialization && (
+                <span className="badge-tag" style={{ margin: 0, background: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' }}>
+                  <Stethoscope size={13} />
+                  {currentUser.specialization}
+                </span>
+              )}
             </div>
-            <h2>Welcome, {user.full_name || user.username}!</h2>
+            <h2>Welcome, {currentUser.full_name || currentUser.username}!</h2>
             <p>
-              Your session is authenticated via signed JWT token. The database connection to SQLite is verified and active.
+              Your clinical profile is fully authenticated and editable. Manage your personal details and clinical credentials below.
             </p>
           </div>
 
-          <div className="status-badge-verified">
-            <CheckCircle2 size={20} />
-            <div>
-              <div>Backend Connected</div>
-              <small style={{ fontWeight: '400', opacity: 0.85 }}>Token: Valid (Bearer)</small>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-submit"
+              style={{ 
+                margin: 0, 
+                width: 'auto', 
+                padding: '10px 20px', 
+                fontSize: '0.86rem',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(13, 148, 136, 0.3))',
+                border: '1px solid var(--primary)',
+                boxShadow: '0 4px 12px rgba(6, 182, 212, 0.2)'
+              }}
+              onClick={() => setIsEditModalOpen(true)}
+              id="btn-open-edit-profile"
+            >
+              <Edit3 size={15} />
+              <span>Edit Profile</span>
+            </button>
+            <div className="status-badge-verified">
+              <CheckCircle2 size={18} />
+              <div>
+                <div>Verified</div>
+                <small style={{ fontWeight: '400', opacity: 0.85 }}>Bearer JWT</small>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* User Session Info Card */}
+        {/* User Profile Card */}
         <div style={{ 
           background: 'var(--bg-surface)', 
           border: '1px solid var(--border-subtle)', 
@@ -107,41 +150,113 @@ export default function DashboardPreview({ user, onLogout }) {
           padding: '24px',
           marginBottom: '32px' 
         }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Database size={18} color="var(--primary)" />
-            Authenticated User Profile (Verified via /api/v1/auth/me)
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Database size={18} color="var(--primary)" />
+              Clinical User Profile Details
+            </h3>
+            <button
+              type="button"
+              style={{
+                background: 'none',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-accent)',
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onClick={() => setIsEditModalOpen(true)}
+            >
+              <Edit3 size={13} />
+              <span>Update Details</span>
+            </button>
+          </div>
           
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
             gap: '16px',
             background: 'var(--bg-input)',
-            padding: '16px',
+            padding: '20px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-subtle)'
           }}>
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>User ID</span>
-              <div style={{ fontWeight: '600', color: 'var(--text-accent)' }}>#{user.id}</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User ID</span>
+              <div style={{ fontWeight: '700', color: 'var(--text-accent)', fontSize: '0.95rem' }}>#{currentUser.id}</div>
             </div>
+            
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Username</span>
-              <div style={{ fontWeight: '600' }}>{user.username}</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Full Name</span>
+              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{currentUser.full_name || 'Not specified'}</div>
             </div>
+
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email Address</span>
-              <div style={{ fontWeight: '600' }}>{user.email}</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Username</span>
+              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{currentUser.username}</div>
             </div>
+
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>System Role</span>
-              <div style={{ fontWeight: '600', textTransform: 'capitalize' }}>{user.role}</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</span>
+              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{currentUser.email}</div>
             </div>
+
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Account Status</span>
-              <div style={{ fontWeight: '600', color: 'var(--success)' }}>Active (Verified)</div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Role</span>
+              <div style={{ fontWeight: '600', textTransform: 'capitalize', fontSize: '0.95rem' }}>{currentUser.role}</div>
+            </div>
+
+            {/* Specialization Field (Doctor Highlight) */}
+            {isDoctor && (
+              <div style={{ 
+                background: 'rgba(6, 182, 212, 0.12)', 
+                padding: '10px 14px', 
+                borderRadius: '8px',
+                border: '1px solid rgba(6, 182, 212, 0.3)' 
+              }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Stethoscope size={13} />
+                  Doctor Medical Specialization
+                </span>
+                <div style={{ fontWeight: '800', color: '#67e8f9', fontSize: '1rem', marginTop: '2px' }}>
+                  {currentUser.specialization || 'Not specified (Click edit to select)'}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Phone</span>
+              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{currentUser.phone_number || 'None provided'}</div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
+              <div style={{ fontWeight: '600', color: 'var(--success)', fontSize: '0.95rem' }}>Active (Verified)</div>
             </div>
           </div>
+
+          {currentUser.bio && (
+            <div style={{ 
+              marginTop: '16px', 
+              padding: '14px 18px', 
+              background: 'rgba(11, 19, 35, 0.6)', 
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)' 
+            }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={13} />
+                {isDoctor ? 'Clinical Bio & Specialization Scope' : 'Department Notes'}
+              </span>
+              <p style={{ marginTop: '4px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                {currentUser.bio}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Roadmap Cards for Step 2 */}
@@ -189,6 +304,14 @@ export default function DashboardPreview({ user, onLogout }) {
           </div>
         </div>
       </main>
+
+      {/* Edit Profile Modal */}
+      <ProfileEditModal
+        user={currentUser}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   );
 }
