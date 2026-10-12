@@ -1,4 +1,4 @@
-from typing import Generator, List
+from typing import Generator, List, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 def get_current_user(
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme),
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,6 +52,30 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(oauth2_scheme),
+) -> Optional[User]:
+    """
+    Returns current user if token is valid, or None if no token was provided.
+    """
+    if not token:
+        return None
+
+    try:
+        payload = decode_access_token(token)
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            return None
+        user_id = int(user_id_str)
+        user = get_user_by_id(db, user_id=user_id)
+        if not user or not user.is_active:
+            return None
+        return user
+    except Exception:
+        return None
+
+
 def require_role(allowed_roles: List[str]):
     """
     Role-based access control dependency factory.
@@ -65,3 +89,21 @@ def require_role(allowed_roles: List[str]):
             )
         return current_user
     return role_checker
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrative privileges required.",
+        )
+    return current_user
+
+
+def require_staff_or_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ["admin", "staff"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Practice management staff or administrator access required.",
+        )
+    return current_user

@@ -143,3 +143,26 @@ export const appointmentService = {
   },
 };
 
+export const userService = {
+  async getUsers(params = {}) {
+    const query = new URLSearchParams();
+    if (params.role && params.role !== 'all') query.append('role', params.role);
+    if (params.search) query.append('search', params.search);
+    if (params.is_active !== undefined) query.append('is_active', params.is_active);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/users${queryString}`);
+  },
+
+  async updateUserRole(userId, newRole) {
+    return await apiRequest(`/api/v1/users/${userId}/role?new_role=${newRole}`, {
+      method: 'PUT',
+    });
+  },
+
+  async toggleUserStatus(userId, isActive) {
+    return await apiRequest(`/api/v1/users/${userId}/status?is_active=${isActive}`, {
+      method: 'PUT',
+    });
+  },
+};
+

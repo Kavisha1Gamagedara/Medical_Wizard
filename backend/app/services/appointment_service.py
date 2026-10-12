@@ -159,11 +159,15 @@ def delete_appointment(db: Session, appointment_id: int) -> Dict[str, Any]:
     return {"success": True, "deleted_id": appointment_id, "message": "Appointment deleted successfully."}
 
 
-def get_appointment_statistics(db: Session) -> Dict[str, int]:
-    total = db.query(Appointment).count()
-    scheduled = db.query(Appointment).filter(Appointment.status == "Scheduled").count()
-    completed = db.query(Appointment).filter(Appointment.status == "Completed").count()
-    cancelled = db.query(Appointment).filter(Appointment.status == "Cancelled").count()
+def get_appointment_statistics(db: Session, patient_id: Optional[int] = None) -> Dict[str, int]:
+    base_query = db.query(Appointment)
+    if patient_id is not None:
+        base_query = base_query.filter(Appointment.patient_id == patient_id)
+
+    total = base_query.count()
+    scheduled = base_query.filter(Appointment.status == "Scheduled").count()
+    completed = base_query.filter(Appointment.status == "Completed").count()
+    cancelled = base_query.filter(Appointment.status == "Cancelled").count()
     return {
         "total": total,
         "scheduled": scheduled,

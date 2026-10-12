@@ -13,8 +13,14 @@ class AppointmentBase(BaseModel):
     notes: Optional[str] = None
 
 
-class AppointmentCreate(AppointmentBase):
-    pass
+class AppointmentCreate(BaseModel):
+    patient_id: Optional[int] = None
+    patient_name: Optional[str] = Field(None, max_length=200)
+    appointment_datetime: datetime
+    doctor: str = Field(..., min_length=2, max_length=200)
+    appointment_type: str = Field(..., min_length=2, max_length=100)
+    status: str = Field("Scheduled", pattern=r"^(Scheduled|Completed|Cancelled|No Show)$")
+    notes: Optional[str] = None
 
 
 class AppointmentUpdate(BaseModel):

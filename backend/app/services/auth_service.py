@@ -80,7 +80,8 @@ def update_user_profile(
     if profile_in.phone_number is not None:
         user.phone_number = profile_in.phone_number
     if profile_in.specialization is not None:
-        user.specialization = profile_in.specialization
+        if user.role in ["doctor", "admin"]:
+            user.specialization = profile_in.specialization
     if profile_in.bio is not None:
         user.bio = profile_in.bio
 

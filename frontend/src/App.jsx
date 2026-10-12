@@ -128,7 +128,7 @@ export default function App() {
             {user ? <User size={16} /> : <Lock size={16} />}
             <span>
               {user 
-                ? `${user.role === 'patient' ? 'Patient' : 'Staff'}: ${user.username}` 
+                ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}: ${user.username}` 
                 : 'Sign In / Portal'}
             </span>
           </button>

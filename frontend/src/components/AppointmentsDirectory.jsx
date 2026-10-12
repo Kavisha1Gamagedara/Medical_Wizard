@@ -22,11 +22,17 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // User Role & Permissions
+  const userRole = currentUser?.role || 'guest';
+  const isPatient = userRole === 'patient';
+  const isDoctor = userRole === 'doctor';
+  const isStaff = userRole === 'staff';
+  const isAdmin = userRole === 'admin';
+
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const isPatient = currentUser?.role === 'patient';
-  const [scopeFilter, setScopeFilter] = useState(isPatient ? 'mine' : 'all');
+  const [scopeFilter, setScopeFilter] = useState(isPatient || isDoctor ? 'mine' : 'all');
 
   // Edit State
   const [editingApt, setEditingApt] = useState(null);
@@ -45,8 +51,12 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
         search: search.trim() || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
       };
-      if (scopeFilter === 'mine' && currentUser?.id) {
-        queryParams.patient_id = currentUser.id;
+      if (scopeFilter === 'mine') {
+        if (isPatient && currentUser?.id) {
+          queryParams.patient_id = currentUser.id;
+        } else if (isDoctor) {
+          queryParams.doctor = currentUser.full_name || currentUser.username;
+        }
       }
 
       const [listData, statsData] = await Promise.all([
@@ -195,6 +205,33 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
         </div>
       )}
 
+      {/* Role Authority Indicator Banner */}
+      {currentUser && !isPatient && (
+        <div style={{
+          background: isAdmin ? 'rgba(244, 63, 94, 0.08)' : isDoctor ? 'rgba(6, 182, 212, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+          border: `1px solid ${isAdmin ? 'rgba(244, 63, 94, 0.25)' : isDoctor ? 'rgba(6, 182, 212, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+          borderRadius: 'var(--radius-md)',
+          padding: '10px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className={`role-pill ${userRole}`}>
+              {userRole} Access
+            </span>
+            <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+              {isAdmin && 'Administrator Authority: Full appointment CRUD, conflict management, and system user control.'}
+              {isDoctor && 'Doctor Authority: Viewing assigned patient schedules & updating clinical consultation notes.'}
+              {isStaff && 'Reception Staff: Scheduling patient appointments, clinic queue flow & consultation updates.'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Directory Scope Filter Buttons */}
       {currentUser && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
@@ -204,8 +241,12 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
             onClick={() => setScopeFilter('mine')}
             style={{ fontSize: '0.84rem', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <User size={14} />
-            <span>{isPatient ? 'My Bookings' : `My Account Appointments (${currentUser.username})`}</span>
+            {isDoctor ? <Stethoscope size={14} /> : <User size={14} />}
+            <span>
+              {isPatient && 'My Bookings'}
+              {isDoctor && `My Doctor Consultations (${currentUser.full_name || currentUser.username})`}
+              {!isPatient && !isDoctor && `My Account Activity (${currentUser.username})`}
+            </span>
           </button>
           <button
             type="button"
@@ -352,23 +393,40 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                      <button
-                        type="button"
-                        className="btn-action-icon edit"
-                        onClick={() => handleOpenEdit(apt)}
-                        title="Edit status/notes"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-action-icon delete"
-                        onClick={() => handleDelete(apt.id)}
-                        disabled={deletingId === apt.id}
-                        title="Delete appointment"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {/* Edit Button - Patients can only edit/cancel their own appointment */}
+                      {(isAdmin || isStaff || isDoctor || (isPatient && apt.patient_id === currentUser?.id) || !currentUser) && (
+                        <button
+                          type="button"
+                          className="btn-action-icon edit"
+                          onClick={() => handleOpenEdit(apt)}
+                          title={isPatient ? 'Cancel or add note' : isDoctor ? 'Update consultation status & notes' : 'Edit appointment'}
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
+
+                      {/* Delete Button - Doctors cannot delete records to preserve medical audit trail */}
+                      {isDoctor ? (
+                        <button
+                          type="button"
+                          className="btn-action-icon delete"
+                          disabled
+                          style={{ opacity: 0.35, cursor: 'not-allowed' }}
+                          title="Doctors cannot delete records (update status to Cancelled or No Show instead)"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      ) : (isAdmin || isStaff || (isPatient && apt.patient_id === currentUser?.id) || !currentUser) ? (
+                        <button
+                          type="button"
+                          className="btn-action-icon delete"
+                          onClick={() => handleDelete(apt.id)}
+                          disabled={deletingId === apt.id}
+                          title="Delete appointment"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -383,7 +441,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
         <div className="modal-backdrop">
           <div className="modal-container" style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3>Edit Appointment #{editingApt.id}</h3>
+              <h3>{isPatient ? 'Cancel Consultation' : `Edit Appointment #${editingApt.id}`}</h3>
               <button type="button" className="modal-close-btn" onClick={() => setEditingApt(null)}>
                 &times;
               </button>
@@ -400,22 +458,31 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
                   className="form-input role-select"
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
+                  disabled={isPatient && editingApt.status === 'Cancelled'}
                 >
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="Completed">Completed</option>
+                  {!isPatient && <option value="Scheduled">Scheduled</option>}
+                  {!isPatient && <option value="Completed">Completed</option>}
                   <option value="Cancelled">Cancelled</option>
-                  <option value="No Show">No Show</option>
+                  {!isPatient && <option value="No Show">No Show</option>}
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Clinical Notes</label>
+                <label className="form-label">
+                  {isDoctor ? 'Clinical Consultation Notes' : isPatient ? 'Patient Cancellation Reason / Notes' : 'Clinical Notes'}
+                </label>
                 <textarea
                   className="form-input"
                   rows="3"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Add prescription, outcome notes, or cancellation reasons..."
+                  placeholder={
+                    isDoctor 
+                      ? 'Add clinical assessment, prescriptions, or follow-up notes...' 
+                      : isPatient 
+                      ? 'State reason for cancellation or note for clinic...' 
+                      : 'Add notes...'
+                  }
                   style={{ paddingLeft: '14px' }}
                 />
               </div>
@@ -425,7 +492,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit" style={{ width: 'auto' }} disabled={saveLoading}>
-                  {saveLoading ? 'Saving...' : 'Update Status'}
+                  {saveLoading ? 'Saving...' : isPatient ? 'Confirm Cancellation' : 'Update Status'}
                 </button>
               </div>
             </form>
@@ -435,3 +502,4 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
     </div>
   );
 }
+

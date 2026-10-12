@@ -18,11 +18,13 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/api';
 import ProfileEditModal from './ProfileEditModal';
+import AdminUsersManager from './AdminUsersManager';
 
 export default function DashboardPreview({ user, onLogout, onNavigate }) {
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const isAdmin = currentUser.role === 'admin';
   const isDoctor = currentUser.role === 'doctor';
   const isPatient = currentUser.role === 'patient';
 
@@ -306,46 +308,62 @@ export default function DashboardPreview({ user, onLogout, onNavigate }) {
           )}
         </div>
 
-        {/* Roadmap Cards for Step 2 */}
+        {/* Administrator Role: User Management Console */}
+        {isAdmin && (
+          <AdminUsersManager currentAdmin={currentUser} />
+        )}
+
+        {/* RBAC Architecture System Roles & Capabilities */}
         <div>
           <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '6px' }}>
-            Next Steps: Appointment Management
+            System Role-Based Access Control (RBAC)
           </h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
-            Here is what we will build next according to the practical assessment requirements:
+            Medical Wizard implements tiered clinical permissions across 4 distinct role levels:
           </p>
 
           <div className="step-card-grid">
-            <div className="step-card">
+            <div className="step-card" style={{ borderColor: isAdmin ? 'rgba(244, 63, 94, 0.4)' : undefined }}>
               <div className="step-card-header">
-                <span className="step-tag">Phase 2.1</span>
-                <Calendar size={20} color="var(--primary)" />
-              </div>
-              <h3>Appointment CRUD Operations</h3>
-              <p>
-                Create, View, Edit, and Delete appointments with Patient Name, Date & Time, Doctor, Type, and Status.
-              </p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-card-header">
-                <span className="step-tag">Phase 2.2</span>
-                <Search size={20} color="var(--emerald-accent)" />
-              </div>
-              <h3>Search & Dynamic Filters</h3>
-              <p>
-                Debounced live search across patients and doctors, filtering by status (`Scheduled`, `Completed`, `Cancelled`) and date ranges.
-              </p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-card-header">
-                <span className="step-tag">Phase 2.3</span>
+                <span className="role-pill admin">Admin Role</span>
                 <ShieldCheck size={20} color="var(--danger)" />
               </div>
-              <h3>Role-Based Permissions (RBAC)</h3>
+              <h3>Administrator</h3>
               <p>
-                Doctors view their specific appointments; Reception manages booking; Admins have full access and configuration control.
+                Full clinical system control: manage appointments, resolve schedule collisions, reassign user roles, and activate/deactivate accounts.
+              </p>
+            </div>
+
+            <div className="step-card" style={{ borderColor: isDoctor ? 'rgba(6, 182, 212, 0.4)' : undefined }}>
+              <div className="step-card-header">
+                <span className="role-pill doctor">Doctor Role</span>
+                <Stethoscope size={20} color="var(--primary)" />
+              </div>
+              <h3>Medical Doctor</h3>
+              <p>
+                Personal patient consultations schedule, consultation notes &amp; prescription entry, specialization credentials. Deletion restricted for audit compliance.
+              </p>
+            </div>
+
+            <div className="step-card" style={{ borderColor: (!isAdmin && !isDoctor && !isPatient) ? 'rgba(16, 185, 129, 0.4)' : undefined }}>
+              <div className="step-card-header">
+                <span className="role-pill staff">Staff Role</span>
+                <Users size={20} color="var(--emerald-accent)" />
+              </div>
+              <h3>Reception &amp; Front Desk</h3>
+              <p>
+                Practice queue management, walk-in patient bookings, appointment rescheduling, status updates, and front-desk calendar operations.
+              </p>
+            </div>
+
+            <div className="step-card" style={{ borderColor: isPatient ? 'rgba(168, 85, 247, 0.4)' : undefined }}>
+              <div className="step-card-header">
+                <span className="role-pill patient">Patient Role</span>
+                <User size={20} color="#c084fc" />
+              </div>
+              <h3>Patient Account</h3>
+              <p>
+                Self-booking with medical specialists, personal appointment tracking, private consultation history, and booking cancellations.
               </p>
             </div>
           </div>
