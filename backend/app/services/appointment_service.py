@@ -222,6 +222,29 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
     return db_appointment
 
 
+def auto_expire_past_appointments(db: Session) -> int:
+    """
+    Finds appointments scheduled in the past where patients haven't attended (status is still 'Scheduled' and not verified),
+    and marks their status as 'Expired'.
+    """
+    now_utc = datetime.now(timezone.utc)
+    expired_apts = (
+        db.query(Appointment)
+        .filter(
+            Appointment.status == "Scheduled",
+            Appointment.is_verified == False,
+            Appointment.appointment_datetime < now_utc,
+        )
+        .all()
+    )
+    if expired_apts:
+        for item in expired_apts:
+            item.status = "Expired"
+            db.add(item)
+        db.commit()
+    return len(expired_apts)
+
+
 def list_appointments(
     db: Session,
     search: Optional[str] = None,
@@ -233,6 +256,7 @@ def list_appointments(
     skip: int = 0,
     limit: int = 100,
 ) -> List[Appointment]:
+    auto_expire_past_appointments(db)
     query = db.query(Appointment)
 
     # 1. Patient RBAC: strictly filter by patient_id
@@ -333,7 +357,7 @@ def verify_patient_checkin(
 ) -> Appointment:
     """
     Verifies an arriving patient using their generated verification code.
-    Marks is_verified = True, updates status to 'Checked In', records timestamps and staff identifier.
+    Marks is_verified = True, updates status to 'Completed', records timestamps and staff identifier.
     """
     apt = get_appointment_by_verification_code(db, code)
     if not apt:
@@ -348,12 +372,17 @@ def verify_patient_checkin(
             detail=f"Cannot Check In: Appointment #{apt.id} was Cancelled and cannot be verified for consultation.",
         )
 
+    if apt.status == "Expired":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot Check In: Appointment #{apt.id} has Expired because the scheduled time passed without attendance.",
+        )
+
     verifier_name = getattr(verified_by_user, "full_name", None) or getattr(verified_by_user, "username", "Front Desk Staff")
     apt.is_verified = True
     apt.verified_at = datetime.now(timezone.utc)
     apt.verified_by = verifier_name
-    if apt.status == "Scheduled":
-        apt.status = "Checked In"
+    apt.status = "Completed"
 
     if notes and notes.strip():
         checkin_note = f"[Reception Check-in by {verifier_name}]: {notes.strip()}"
@@ -370,6 +399,15 @@ def update_appointment(
 ) -> Appointment:
     apt = get_appointment_by_id(db, appointment_id)
 
+    # Check if existing appointment is in the past - past or concluded appointments cannot be edited
+    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    apt_dt_naive = normalize_to_utc_naive(apt.appointment_datetime)
+    if apt_dt_naive < (now_utc_naive - timedelta(minutes=5)) or apt.status in ("Expired", "Completed"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Past or concluded appointments cannot be edited. Only upcoming consultations can be modified.",
+        )
+
     # If updating datetime or doctor, check conflict
     new_doc = appointment_in.doctor or apt.doctor
     new_dt = (
@@ -382,7 +420,6 @@ def update_appointment(
     if appointment_in.appointment_datetime is not None and (
         appointment_in.status != "Cancelled" and apt.status != "Cancelled"
     ):
-        now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
         if new_dt < (now_utc_naive - timedelta(minutes=2)):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -430,6 +467,7 @@ def get_appointment_statistics(
     patient_id: Optional[int] = None,
     doctor_user: Optional[Any] = None,
 ) -> Dict[str, int]:
+    auto_expire_past_appointments(db)
     base_query = db.query(Appointment)
     if patient_id is not None:
         base_query = base_query.filter(Appointment.patient_id == patient_id)
@@ -453,10 +491,12 @@ def get_appointment_statistics(
     checked_in = base_query.filter(Appointment.status == "Checked In").count()
     completed = base_query.filter(Appointment.status == "Completed").count()
     cancelled = base_query.filter(Appointment.status == "Cancelled").count()
+    expired = base_query.filter(Appointment.status == "Expired").count()
     return {
         "total": total,
         "scheduled": scheduled,
         "checked_in": checked_in,
         "completed": completed,
         "cancelled": cancelled,
+        "expired": expired,
     }

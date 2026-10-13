@@ -20,11 +20,10 @@ import CityCareDashboard from './components/CityCareDashboard';
 import DoctorsPage from './components/DoctorsPage';
 import AppointmentsDirectory from './components/AppointmentsDirectory';
 import PatientsDirectory from './components/PatientsDirectory';
-import DashboardPreview from './components/DashboardPreview';
-import LoginCard from './components/LoginCard';
 import CreativeAuthPortal from './components/CreativeAuthPortal';
 import StaffVerifyPatientModal from './components/StaffVerifyPatientModal';
 import AdminRegisterUserModal from './components/AdminRegisterUserModal';
+import UserProfileCardModal from './components/UserProfileCardModal';
 import { authService } from './services/api';
 import citycareAvatar from './assets/citycare_avatar.jpg';
 
@@ -39,6 +38,7 @@ export default function App() {
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileCard, setShowProfileCard] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
@@ -65,6 +65,11 @@ export default function App() {
 
   // Seamless navigation handler that scrolls to page sections on Home
   const handleNavClick = (target) => {
+    if (target === 'profile') {
+      setShowProfileCard(true);
+      return;
+    }
+
     if (target === 'about' || target === 'faq') {
       const targetId = target === 'about' ? 'about-us' : 'faq';
       setActiveSection(target);
@@ -129,9 +134,17 @@ export default function App() {
     }
   }, [activeTab]);
 
+  // Guaranteed auto-dismiss for all toast messages after exactly 3 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 4000);
   };
 
   const handleLoginSuccess = (authenticatedUser) => {
@@ -166,11 +179,37 @@ export default function App() {
 
   return (
     <div className="citycare-app-root">
-      {/* Toast Notification Banner */}
+      {/* Toast Notification Banner (Auto-dismisses in 3s or on click) */}
       {toastMessage && (
-        <div className="portal-toast-banner">
+        <div 
+          className="portal-toast-banner" 
+          onClick={() => setToastMessage('')}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          title="Click to dismiss"
+        >
           <CheckCircle2 size={18} color="#10b981" />
           <span>{toastMessage}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToastMessage('');
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '0 0 0 6px',
+              fontSize: '1.1rem',
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            aria-label="Dismiss message"
+          >
+            &times;
+          </button>
         </div>
       )}
 
@@ -340,7 +379,8 @@ export default function App() {
             onClick={() => {
               if (user?.role === 'admin') setIsAdminRegisterOpen(true);
               else if (user?.role === 'staff') setIsVerifyModalOpen(true);
-              else setActiveTab('staff');
+              else if (user) setShowProfileCard(true);
+              else handleNavClick('staff');
             }}
           >
             <Settings size={18} color="#334155" />
@@ -396,10 +436,14 @@ export default function App() {
                   <button
                     type="button"
                     className="citycare-dropdown-item"
-                    onClick={() => { setShowProfileMenu(false); handleNavClick('staff'); }}
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowProfileCard(true);
+                    }}
+                    id="btn-user-dropdown-profile"
                   >
-                    <Activity size={14} />
-                    <span>Account Portal</span>
+                    <User size={14} color="#0284c7" />
+                    <span>Profile</span>
                   </button>
 
                   <button
@@ -559,12 +603,13 @@ export default function App() {
         )}
 
 
-        {/* STAFF & ACCOUNT PORTAL / LOGIN */}
+        {/* GUEST AUTH PORTAL / LOGGED IN DASHBOARD */}
         {activeTab === 'staff' && (
           user ? (
-            <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '0 20px' }}>
-              <DashboardPreview user={user} onLogout={handleLogout} onNavigate={handleNavClick} />
-            </div>
+            <CityCareDashboard
+              currentUser={user}
+              onNavigate={handleNavClick}
+            />
           ) : (
             <CreativeAuthPortal
               onLoginSuccess={handleLoginSuccess}
@@ -575,6 +620,24 @@ export default function App() {
       </main>
 
       {/* 3. MODALS */}
+      {/* User Profile Card Modal */}
+      {showProfileCard && user && (
+        <UserProfileCardModal
+          user={user}
+          isOpen={showProfileCard}
+          onClose={() => setShowProfileCard(false)}
+          onProfileUpdated={(updatedUser) => {
+            setUser(updatedUser);
+            showToast('Profile updated successfully!');
+          }}
+          onLogout={() => {
+            setShowProfileCard(false);
+            authService.logout();
+            handleLogout();
+          }}
+        />
+      )}
+
       {/* Front-Desk Verification & Check-In Modal */}
       {isVerifyModalOpen && (
         <StaffVerifyPatientModal

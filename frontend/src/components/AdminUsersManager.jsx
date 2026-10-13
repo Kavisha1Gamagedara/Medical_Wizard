@@ -58,7 +58,7 @@ export default function AdminUsersManager({ currentAdmin }) {
       await userService.updateUserRole(userId, newRole);
       setSuccessMsg(`User #${userId} role successfully changed to '${newRole}'.`);
       await fetchUsers();
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       setErrorMsg(`Role update failed: ${err.message}`);
     } finally {
@@ -84,7 +84,7 @@ export default function AdminUsersManager({ currentAdmin }) {
       await userService.toggleUserStatus(user.id, nextState);
       setSuccessMsg(`User @${user.username} is now ${nextState ? 'Active' : 'Deactivated'}.`);
       await fetchUsers();
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       setErrorMsg(`Status update failed: ${err.message}`);
     } finally {
@@ -95,7 +95,7 @@ export default function AdminUsersManager({ currentAdmin }) {
   const handleUserCreated = (newUser) => {
     setSuccessMsg(`Successfully registered new ${newUser.role} account: @${newUser.username} (${newUser.full_name || newUser.username}).`);
     fetchUsers();
-    setTimeout(() => setSuccessMsg(''), 5000);
+    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   return (

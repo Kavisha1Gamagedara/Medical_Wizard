@@ -107,6 +107,7 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
           ? `Availability and capacity of ${maxAppointments} appointments saved for ${specificDate}!`
           : `Weekly schedule (${dayOfWeek}) saved with max ${maxAppointments} appointments/day!`
       );
+      setTimeout(() => setSuccessMsg(''), 3000);
       await fetchSchedules();
       if (onScheduleUpdated) onScheduleUpdated();
     } catch (err) {
@@ -122,6 +123,7 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
       await doctorService.deleteDoctorAvailability(ruleId);
       setAvailabilities(prev => prev.filter(a => a.id !== ruleId));
       setSuccessMsg('Availability rule removed.');
+      setTimeout(() => setSuccessMsg(''), 3000);
       if (onScheduleUpdated) onScheduleUpdated();
     } catch (err) {
       setErrorMsg(err.message || 'Unable to delete rule.');

@@ -94,7 +94,10 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
       })
     : 'Not scheduled';
 
-  const isCheckedIn = appointment.status === 'Checked In' || appointment.is_verified;
+  const isCompleted = appointment.status === 'Completed';
+  const isCheckedIn = appointment.status === 'Checked In' || appointment.is_verified || isCompleted;
+  const isExpired = appointment.status === 'Expired';
+  const isCancelled = appointment.status === 'Cancelled';
 
   return (
     <div className="modal-backdrop receipt-modal-backdrop" style={{ zIndex: 1200 }}>
@@ -102,9 +105,10 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
         className="modal-container printable-receipt" 
         style={{ 
           maxWidth: '560px', 
-          background: 'linear-gradient(180deg, #111a2e 0%, #0c1322 100%)',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(6, 182, 212, 0.15)',
+          background: '#ffffff',
+          borderRadius: '24px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
           overflow: 'hidden'
         }}
       >
@@ -112,22 +116,22 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
         <div 
           className="modal-header" 
           style={{ 
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(13, 148, 136, 0.12))',
-            borderBottom: '1px solid var(--border-subtle)',
-            padding: '18px 24px'
+            background: '#ffffff',
+            borderBottom: '1px solid #f1f5f9',
+            padding: '20px 26px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="brand-logo-icon" style={{ width: '42px', height: '42px', borderRadius: '10px' }}>
+            <div className="brand-logo-icon" style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#e0f2fe', color: '#0284c7' }}>
               <HeartPulse size={22} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
                   Appointment Receipt &amp; Check-In Pass
                 </h2>
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', margin: '2px 0 0' }}>
+              <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '2px 0 0' }}>
                 Medical Wizard Clinical Practice &bull; Ref #APT-{appointment.id}
               </p>
             </div>
@@ -145,20 +149,23 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
         {/* Receipt Body */}
         <div className="modal-body" style={{ padding: '24px 28px', maxHeight: '78vh', overflowY: 'auto' }}>
           {/* Hospital Watermark & Subtitle */}
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '18px' }}>
             <span 
               className="badge-tag" 
               style={{ 
                 margin: '0 auto 8px', 
-                background: isCheckedIn ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-                borderColor: isCheckedIn ? 'rgba(16, 185, 129, 0.4)' : 'rgba(6, 182, 212, 0.4)',
-                color: isCheckedIn ? '#6ee7b7' : '#67e8f9'
+                background: isCompleted ? '#ede9fe' : isExpired ? '#fef3c7' : isCheckedIn ? '#ecfdf5' : '#f0f9ff',
+                borderColor: isCompleted ? '#ddd6fe' : isExpired ? '#fde68a' : isCheckedIn ? '#a7f3d0' : '#bae6fd',
+                color: isCompleted ? '#6d28d9' : isExpired ? '#b45309' : isCheckedIn ? '#059669' : '#0284c7',
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: '20px'
               }}
             >
-              {isCheckedIn ? <CheckCircle2 size={13} /> : <Sparkles size={13} />}
-              {isCheckedIn ? 'Patient Checked In & Verified' : 'Official Hospital Check-In Pass'}
+              {isCompleted ? <CheckCircle2 size={13} /> : isExpired ? <AlertCircle size={13} /> : isCheckedIn ? <CheckCircle2 size={13} /> : <Sparkles size={13} />}
+              {isCompleted ? 'Consultation Completed' : isExpired ? 'Appointment Expired' : isCheckedIn ? 'Patient Checked In' : 'Official Hospital Check-In Pass'}
             </span>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
               Present this pass or scan QR code at hospital reception upon arrival.
             </div>
           </div>
@@ -169,22 +176,22 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center', 
-              background: 'rgba(15, 23, 42, 0.85)',
+              background: '#f8fafc',
               borderRadius: '16px',
               padding: '20px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid #e2e8f0',
               marginBottom: '20px',
-              position: 'relative',
-              boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.4)'
+              position: 'relative'
             }}
           >
             <div 
               style={{ 
                 background: '#ffffff', 
                 padding: '12px', 
-                borderRadius: '12px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                position: 'relative'
+                borderRadius: '12px', 
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                position: 'relative',
+                border: '1px solid #f1f5f9'
               }}
             >
               {generatingQr ? (
@@ -202,7 +209,7 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
 
             {/* Random Verification Code Highlight Box */}
             <div style={{ marginTop: '16px', textAlign: 'center', width: '100%' }}>
-              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b', fontWeight: 700 }}>
                 Patient Verification Code
               </div>
               <div 
@@ -220,8 +227,7 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
                     fontSize: '1.75rem', 
                     fontWeight: 900, 
                     letterSpacing: '0.15em',
-                    color: '#38bdf8',
-                    textShadow: '0 0 16px rgba(56, 189, 248, 0.4)'
+                    color: '#0284c7'
                   }}
                 >
                   {verificationCode}
@@ -236,8 +242,9 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '4px',
-                    borderColor: copied ? 'var(--emerald-accent)' : undefined,
-                    color: copied ? 'var(--emerald-accent)' : undefined
+                    borderColor: copied ? '#a7f3d0' : '#cbd5e1',
+                    color: copied ? '#059669' : '#475569',
+                    borderRadius: '8px'
                   }}
                   title="Copy verification code"
                 >
@@ -249,12 +256,12 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
           </div>
 
           {/* Verification Status Banner */}
-          {isCheckedIn ? (
+          {isCompleted ? (
             <div 
               style={{ 
-                background: 'rgba(16, 185, 129, 0.12)', 
-                border: '1px solid rgba(16, 185, 129, 0.35)', 
-                borderRadius: '10px', 
+                background: '#ede9fe', 
+                border: '1px solid #ddd6fe', 
+                borderRadius: '12px', 
                 padding: '12px 16px', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -262,12 +269,59 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
                 marginBottom: '20px'
               }}
             >
-              <CheckCircle2 size={24} color="var(--emerald-accent)" style={{ flexShrink: 0 }} />
+              <CheckCircle2 size={24} color="#6d28d9" style={{ flexShrink: 0 }} />
               <div>
-                <div style={{ fontWeight: 800, color: 'var(--emerald-accent)', fontSize: '0.9rem' }}>
+                <div style={{ fontWeight: 800, color: '#6d28d9', fontSize: '0.9rem' }}>
+                  Consultation Completed
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                  {appointment.verified_by ? `Verified by staff: ${appointment.verified_by}` : 'Completed at clinic'}
+                  {appointment.verified_at && ` on ${new Date(appointment.verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                </div>
+              </div>
+            </div>
+          ) : isExpired ? (
+            <div 
+              style={{ 
+                background: '#fef3c7', 
+                border: '1px solid #fde68a', 
+                borderRadius: '12px', 
+                padding: '12px 16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                marginBottom: '20px'
+              }}
+            >
+              <AlertCircle size={24} color="#d97706" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 800, color: '#b45309', fontSize: '0.9rem' }}>
+                  Appointment Expired
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#78350f' }}>
+                  The scheduled consultation time has elapsed without patient attendance or verification.
+                </div>
+              </div>
+            </div>
+          ) : isCheckedIn ? (
+            <div 
+              style={{ 
+                background: '#ecfdf5', 
+                border: '1px solid #a7f3d0', 
+                borderRadius: '12px', 
+                padding: '12px 16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                marginBottom: '20px'
+              }}
+            >
+              <CheckCircle2 size={24} color="#059669" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 800, color: '#059669', fontSize: '0.9rem' }}>
                   Patient Arrival Verified &amp; Checked In
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.78rem', color: '#475569' }}>
                   {appointment.verified_by ? `Checked in by staff: ${appointment.verified_by}` : 'Checked in at front desk'}
                   {appointment.verified_at && ` on ${new Date(appointment.verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                 </div>
@@ -276,9 +330,9 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
           ) : (
             <div 
               style={{ 
-                background: 'rgba(6, 182, 212, 0.08)', 
-                border: '1px solid rgba(6, 182, 212, 0.25)', 
-                borderRadius: '10px', 
+                background: '#f0f9ff', 
+                border: '1px solid #bae6fd', 
+                borderRadius: '12px', 
                 padding: '12px 16px', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -286,9 +340,9 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
                 marginBottom: '20px'
               }}
             >
-              <ShieldCheck size={22} color="var(--primary)" style={{ flexShrink: 0 }} />
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Status: <strong style={{ color: '#38bdf8' }}>Scheduled</strong>. Present this digital slip at reception so staff can verify your booking.
+              <ShieldCheck size={22} color="#0284c7" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.8rem', color: '#334155' }}>
+                Status: <strong style={{ color: '#0284c7' }}>Scheduled</strong>. Present this digital slip at reception so staff can verify your booking.
               </div>
             </div>
           )}
@@ -296,57 +350,57 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
           {/* Appointment Data Sheet */}
           <div 
             style={{ 
-              background: 'var(--bg-input)', 
-              borderRadius: 'var(--radius-md)', 
+              background: '#f8fafc', 
+              borderRadius: '14px', 
               padding: '18px 20px', 
-              border: '1px solid var(--border-subtle)',
+              border: '1px solid #e2e8f0',
               fontSize: '0.86rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Patient Name</span>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <span style={{ color: '#64748b' }}>Patient Name</span>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>
                 {appointment.patient_name}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Consulting Doctor</span>
-              <span style={{ fontWeight: 700, color: 'var(--teal-accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <span style={{ color: '#64748b' }}>Consulting Doctor</span>
+              <span style={{ fontWeight: 700, color: '#0284c7' }}>
                 {appointment.doctor}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Date &amp; Time</span>
-              <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <span style={{ color: '#64748b' }}>Date &amp; Time</span>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>
                 {formattedDateTime}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Consultation Type</span>
-              <span style={{ fontWeight: 600 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <span style={{ color: '#64748b' }}>Consultation Type</span>
+              <span style={{ fontWeight: 600, color: '#334155' }}>
                 {appointment.appointment_type}
               </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Hospital Facility</span>
-              <span style={{ fontWeight: 600 }}>
+              <span style={{ color: '#64748b' }}>Hospital Facility</span>
+              <span style={{ fontWeight: 600, color: '#334155' }}>
                 Medical Wizard Clinical Suite &bull; Level 2
               </span>
             </div>
 
             {appointment.notes && (
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', marginTop: '2px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', display: 'block', marginBottom: '2px' }}>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '2px' }}>
+                <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '2px' }}>
                   Clinical / Front-desk Notes:
                 </span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', whiteSpace: 'pre-line' }}>
+                <span style={{ color: '#334155', fontSize: '0.82rem', whiteSpace: 'pre-line' }}>
                   {appointment.notes}
                 </span>
               </div>
@@ -359,8 +413,8 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
           className="modal-footer no-print" 
           style={{ 
             padding: '16px 24px', 
-            background: 'rgba(11, 19, 35, 0.7)',
-            borderTop: '1px solid var(--border-subtle)',
+            background: '#ffffff',
+            borderTop: '1px solid #f1f5f9',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -373,7 +427,7 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
               type="button"
               className="btn-cancel"
               onClick={handlePrint}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem', borderRadius: '10px' }}
               title="Print appointment slip"
             >
               <Printer size={15} />
@@ -383,7 +437,7 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
               type="button"
               className="btn-cancel"
               onClick={handleDownloadQr}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem', borderRadius: '10px' }}
               title="Download QR code"
             >
               <Download size={15} />
@@ -395,7 +449,7 @@ export default function AppointmentReceiptModal({ appointment, isOpen, onClose }
             type="button"
             className="btn-submit"
             onClick={onClose}
-            style={{ width: 'auto', padding: '8px 22px', fontSize: '0.84rem', margin: 0 }}
+            style={{ width: 'auto', padding: '8px 22px', fontSize: '0.84rem', margin: 0, borderRadius: '10px', background: '#0f172a' }}
           >
             Close
           </button>

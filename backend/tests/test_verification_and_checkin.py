@@ -105,7 +105,7 @@ def test_staff_verify_patient_checkin_success(client, patient_headers, staff_hea
 
     verified_apt = verify_data["appointment"]
     assert verified_apt["is_verified"] is True
-    assert verified_apt["status"] == "Checked In"
+    assert verified_apt["status"] == "Completed"
     assert verified_apt["verified_at"] is not None
     assert verified_apt["verified_by"] is not None
     assert "waiting in room 2" in (verified_apt["notes"] or "")
@@ -138,7 +138,7 @@ def test_verification_normalization_case_and_prefix_insensitive(client, patient_
     )
     assert verify_res.status_code == 200
     assert verify_res.json()["appointment"]["is_verified"] is True
-    assert verify_res.json()["appointment"]["status"] == "Checked In"
+    assert verify_res.json()["appointment"]["status"] == "Completed"
 
 
 def test_non_staff_cannot_verify_checkin(client, patient_headers, db_session):
@@ -232,3 +232,62 @@ def test_cannot_verify_cancelled_appointment_or_invalid_code(client, patient_hea
         headers=staff_headers,
     )
     assert verify_fake.status_code == 404
+
+
+def test_unattended_past_appointments_auto_expire(client, staff_headers, db_session):
+    """
+    Test that scheduled appointments in the past where patient did not attend
+    are automatically marked as 'Expired'.
+    """
+    from app.models.appointment import Appointment
+
+    past_time = datetime.now(timezone.utc) - timedelta(hours=3)
+    apt = Appointment(
+        patient_name="Expired Patient",
+        doctor="Dr. Sarah Jenkins",
+        appointment_datetime=past_time,
+        appointment_type="General Consultation",
+        status="Scheduled",
+        is_verified=False,
+        verification_code="MW-EXP001",
+    )
+    db_session.add(apt)
+    db_session.commit()
+    db_session.refresh(apt)
+
+    # When querying appointments or stats, it should be marked as Expired
+    res = client.get("/api/v1/appointments", headers=staff_headers)
+    assert res.status_code == 200
+    apts = res.json()
+    matching = [a for a in apts if a["id"] == apt.id]
+    assert len(matching) == 1
+    assert matching[0]["status"] == "Expired"
+
+
+def test_past_appointments_cannot_be_edited(client, staff_headers, db_session):
+    """
+    Test that past appointments cannot be edited.
+    """
+    from app.models.appointment import Appointment
+
+    past_time = datetime.now(timezone.utc) - timedelta(hours=2)
+    apt = Appointment(
+        patient_name="Past Patient",
+        doctor="Dr. Marcus Chen",
+        appointment_datetime=past_time,
+        appointment_type="General Consultation",
+        status="Scheduled",
+        is_verified=False,
+        verification_code="MW-PAST01",
+    )
+    db_session.add(apt)
+    db_session.commit()
+
+    # Attempt to edit notes or status of past appointment
+    res = client.put(
+        f"/api/v1/appointments/{apt.id}",
+        json={"notes": "Trying to edit past consultation"},
+        headers=staff_headers,
+    )
+    assert res.status_code == 400
+    assert "cannot be edited" in res.json()["detail"].lower()
