@@ -33,6 +33,40 @@ def normalize_doctor_name(doc: str) -> str:
     return cleaned
 
 
+def is_appointment_for_doctor(apt: Appointment, doctor_user: Any) -> bool:
+    """
+    Checks if a clinical appointment belongs to the specified doctor user.
+    Uses robust normalization comparing full name, username, and doctor prefix variations.
+    """
+    if not apt or not doctor_user:
+        return False
+    doc_field = (apt.doctor or "").strip().lower()
+    clean_doc = normalize_doctor_name(apt.doctor).strip().lower()
+
+    candidates = set()
+    if doctor_user.full_name:
+        candidates.add(doctor_user.full_name.strip().lower())
+        cf = normalize_doctor_name(doctor_user.full_name).strip().lower()
+        if cf:
+            candidates.add(cf)
+    if doctor_user.username:
+        candidates.add(doctor_user.username.strip().lower())
+        cu = normalize_doctor_name(doctor_user.username).strip().lower()
+        if cu:
+            candidates.add(cu)
+
+    for c in candidates:
+        if not c:
+            continue
+        if c == doc_field or c == clean_doc:
+            return True
+        if len(c) >= 3 and (c in doc_field or c in clean_doc):
+            return True
+        if len(clean_doc) >= 3 and (clean_doc in c or doc_field in c):
+            return True
+    return False
+
+
 def check_doctor_schedule_conflict(
     db: Session,
     doctor: str,
@@ -159,6 +193,7 @@ def list_appointments(
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
     doctor_filter: Optional[str] = None,
+    doctor_user: Optional[Any] = None,
     appointment_type: Optional[str] = None,
     patient_id: Optional[int] = None,
     skip: int = 0,
@@ -166,8 +201,27 @@ def list_appointments(
 ) -> List[Appointment]:
     query = db.query(Appointment)
 
-    if patient_id:
+    # 1. Patient RBAC: strictly filter by patient_id
+    if patient_id is not None:
         query = query.filter(Appointment.patient_id == patient_id)
+
+    # 2. Doctor RBAC: if doctor_user is provided, strictly limit query to their assigned appointments
+    if doctor_user is not None:
+        conditions = []
+        if doctor_user.full_name:
+            conditions.append(Appointment.doctor.ilike(f"%{doctor_user.full_name.strip()}%"))
+            cf = normalize_doctor_name(doctor_user.full_name)
+            if cf and len(cf) >= 3:
+                conditions.append(Appointment.doctor.ilike(f"%{cf}%"))
+        if doctor_user.username:
+            conditions.append(Appointment.doctor.ilike(f"%{doctor_user.username.strip()}%"))
+            cu = normalize_doctor_name(doctor_user.username)
+            if cu and len(cu) >= 3:
+                conditions.append(Appointment.doctor.ilike(f"%{cu}%"))
+        if conditions:
+            query = query.filter(or_(*conditions))
+    elif doctor_filter and doctor_filter.lower() != "all":
+        query = query.filter(Appointment.doctor.ilike(f"%{doctor_filter.strip()}%"))
 
     if search:
         pattern = f"%{search.strip()}%"
@@ -181,9 +235,6 @@ def list_appointments(
 
     if status_filter and status_filter.lower() != "all":
         query = query.filter(Appointment.status.ilike(status_filter.strip()))
-
-    if doctor_filter and doctor_filter.lower() != "all":
-        query = query.filter(Appointment.doctor.ilike(f"%{doctor_filter.strip()}%"))
 
     if appointment_type and appointment_type.lower() != "all":
         query = query.filter(Appointment.appointment_type.ilike(appointment_type.strip()))
@@ -266,10 +317,28 @@ def delete_appointment(db: Session, appointment_id: int) -> Dict[str, Any]:
     return {"success": True, "deleted_id": appointment_id, "message": "Appointment deleted successfully."}
 
 
-def get_appointment_statistics(db: Session, patient_id: Optional[int] = None) -> Dict[str, int]:
+def get_appointment_statistics(
+    db: Session,
+    patient_id: Optional[int] = None,
+    doctor_user: Optional[Any] = None,
+) -> Dict[str, int]:
     base_query = db.query(Appointment)
     if patient_id is not None:
         base_query = base_query.filter(Appointment.patient_id == patient_id)
+    elif doctor_user is not None:
+        conditions = []
+        if doctor_user.full_name:
+            conditions.append(Appointment.doctor.ilike(f"%{doctor_user.full_name.strip()}%"))
+            cf = normalize_doctor_name(doctor_user.full_name)
+            if cf and len(cf) >= 3:
+                conditions.append(Appointment.doctor.ilike(f"%{cf}%"))
+        if doctor_user.username:
+            conditions.append(Appointment.doctor.ilike(f"%{doctor_user.username.strip()}%"))
+            cu = normalize_doctor_name(doctor_user.username)
+            if cu and len(cu) >= 3:
+                conditions.append(Appointment.doctor.ilike(f"%{cu}%"))
+        if conditions:
+            base_query = base_query.filter(or_(*conditions))
 
     total = base_query.count()
     scheduled = base_query.filter(Appointment.status == "Scheduled").count()

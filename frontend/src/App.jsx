@@ -178,7 +178,11 @@ export default function App() {
         )}
 
         {activeTab === 'appointments' && (
-          <AppointmentsDirectory currentUser={user} onNewBookingClick={() => setActiveTab('doctors')} />
+          <AppointmentsDirectory 
+            currentUser={user} 
+            onNewBookingClick={() => setActiveTab('doctors')} 
+            onNavigate={setActiveTab}
+          />
         )}
 
         {activeTab === 'staff' && (

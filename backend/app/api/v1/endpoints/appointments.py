@@ -26,25 +26,43 @@ def get_appointments(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    List appointments with optional search and multi-criteria filters.
-    Enforces RBAC:
-    - Patients can ONLY view their own appointments (patient_id enforced to current_user.id).
-    - Doctors, staff, and admins can view practice appointments.
+    List appointments with strict RBAC:
+    - Logged-in Staff & Admin: can see all appointments across the practice.
+    - Doctors: can ONLY see the appointments that they got (assigned to them).
+    - Patients: can ONLY see the appointments that they booked.
+    - Unauthenticated: 401 Unauthorized.
     """
-    effective_patient_id = patient_id
+    effective_patient_id = None
+    effective_doctor_filter = doctor
+    effective_doctor_user = None
 
-    # RBAC: Patient privacy boundary
-    if current_user and current_user.role == "patient":
+    if current_user.role == "patient":
+        # Patients can only see the appointments they booked
         effective_patient_id = current_user.id
+        effective_doctor_filter = doctor
+    elif current_user.role == "doctor":
+        # Doctors can only see the appointments assigned to them
+        effective_doctor_user = current_user
+        effective_doctor_filter = None
+    elif current_user.role in ["staff", "admin"]:
+        # Staff and Admin can view all practice appointments (with optional filters)
+        effective_patient_id = patient_id
+        effective_doctor_filter = doctor
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You do not have permission to view appointments.",
+        )
 
     return appointment_service.list_appointments(
         db=db,
         search=search,
         status_filter=status,
-        doctor_filter=doctor,
+        doctor_filter=effective_doctor_filter,
+        doctor_user=effective_doctor_user,
         appointment_type=type,
         patient_id=effective_patient_id,
         skip=skip,
@@ -87,19 +105,28 @@ def create_appointment(
 @router.get("/stats", response_model=Dict[str, int])
 def get_appointment_statistics(
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get aggregated metrics on appointments.
     Enforces RBAC:
-    - Patients receive aggregated metrics for their own consultations.
-    - Staff/Admin/Doctor receive clinic-wide metrics.
+    - Patients receive aggregated metrics for their own booked consultations.
+    - Doctors receive metrics for appointments assigned to them.
+    - Staff/Admin receive practice-wide metrics.
     """
     patient_filter = None
-    if current_user and current_user.role == "patient":
-        patient_filter = current_user.id
+    doctor_user = None
 
-    return appointment_service.get_appointment_statistics(db=db, patient_id=patient_filter)
+    if current_user.role == "patient":
+        patient_filter = current_user.id
+    elif current_user.role == "doctor":
+        doctor_user = current_user
+
+    return appointment_service.get_appointment_statistics(
+        db=db,
+        patient_id=patient_filter,
+        doctor_user=doctor_user,
+    )
 
 
 @router.get("/check-availability", response_model=Dict[str, Any])
@@ -162,19 +189,27 @@ def check_doctor_availability(
 def get_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get appointment details by ID.
-    Enforces RBAC:
+    Enforces strict RBAC:
     - Patients cannot view other patients' consultation details (403 Forbidden).
+    - Doctors cannot view consultations assigned to other doctors (403 Forbidden).
+    - Staff and Admins can view practice appointments.
     """
     apt = appointment_service.get_appointment_by_id(db=db, appointment_id=appointment_id)
-    if current_user and current_user.role == "patient":
+    if current_user.role == "patient":
         if apt.patient_id is not None and apt.patient_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied: You do not have permission to view other patients' appointments.",
+            )
+    elif current_user.role == "doctor":
+        if not appointment_service.is_appointment_for_doctor(apt, current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Doctors can only view appointments assigned to them.",
             )
     return apt
 
@@ -184,31 +219,34 @@ def update_appointment(
     appointment_id: int,
     appointment_in: AppointmentUpdate,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Edit and update an existing appointment.
     Enforces RBAC:
     - Patients can only update their own appointments, and cannot alter assigned doctor directly.
-    - Doctors can update clinical status and notes for their consultations.
+    - Doctors can only update clinical status and notes for their consultations.
     - Staff and Admins have full editing rights.
     """
     apt = appointment_service.get_appointment_by_id(db=db, appointment_id=appointment_id)
 
-    if current_user:
-        if current_user.role == "patient":
-            if apt.patient_id is not None and apt.patient_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied: You do not have permission to modify other patients' appointments.",
-                )
-            if appointment_in.doctor and appointment_in.doctor != apt.doctor:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Patients cannot reassign doctors. Please cancel and book a new consultation or contact reception.",
-                )
-        elif current_user.role == "doctor":
-            pass
+    if current_user.role == "patient":
+        if apt.patient_id is not None and apt.patient_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to modify other patients' appointments.",
+            )
+        if appointment_in.doctor and appointment_in.doctor != apt.doctor:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Patients cannot reassign doctors. Please cancel and book a new consultation or contact reception.",
+            )
+    elif current_user.role == "doctor":
+        if not appointment_service.is_appointment_for_doctor(apt, current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Doctors can only update appointments assigned to them.",
+            )
 
     return appointment_service.update_appointment(
         db=db,
@@ -221,7 +259,7 @@ def update_appointment(
 def delete_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Delete an appointment by ID.
@@ -232,17 +270,16 @@ def delete_appointment(
     """
     apt = appointment_service.get_appointment_by_id(db=db, appointment_id=appointment_id)
 
-    if current_user:
-        if current_user.role == "doctor":
+    if current_user.role == "doctor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Doctors cannot permanently delete clinical appointment records. Please update status to Cancelled or No Show to preserve medical history.",
+        )
+    elif current_user.role == "patient":
+        if apt.patient_id is not None and apt.patient_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Doctors cannot permanently delete clinical appointment records. Please update status to Cancelled or No Show to preserve medical history.",
+                detail="Access denied: You cannot delete another patient's appointment.",
             )
-        elif current_user.role == "patient":
-            if apt.patient_id is not None and apt.patient_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied: You cannot delete another patient's appointment.",
-                )
 
     return appointment_service.delete_appointment(db=db, appointment_id=appointment_id)

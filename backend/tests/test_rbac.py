@@ -283,3 +283,145 @@ def test_appointment_creation_restricted_to_patient_and_staff(client):
     )
     assert res_staff.status_code == status.HTTP_201_CREATED
     assert res_staff.json()["patient_name"] == "Walk-in Guest"
+
+
+def test_appointment_visibility_rbac_matrix(client):
+    """
+    Test that:
+    1. Only logged-in staff and admin can see all appointments.
+    2. Doctors can ONLY see the appointments that they got (assigned to them).
+    3. Patients can ONLY see the appointments that they booked.
+    4. Unauthenticated users cannot see any appointments (401 Unauthorized).
+    """
+    now = datetime.now(timezone.utc)
+
+    # Register Doctors
+    register_user(client, "dr_adams", "adams@clinic.com", "Password123!", role="doctor", full_name="Dr. Adams", specialization="Cardiologist")
+    register_user(client, "dr_baker", "baker@clinic.com", "Password123!", role="doctor", full_name="Dr. Baker", specialization="Dentist")
+    doc_adams_token = get_auth_token(client, "dr_adams", "Password123!")
+    doc_baker_token = get_auth_token(client, "dr_baker", "Password123!")
+    headers_adams = {"Authorization": f"Bearer {doc_adams_token}"}
+    headers_baker = {"Authorization": f"Bearer {doc_baker_token}"}
+
+    # Register Patients
+    register_user(client, "patient_john", "john@mail.com", "Password123!", role="patient", full_name="John Doe")
+    register_user(client, "patient_jane", "jane@mail.com", "Password123!", role="patient", full_name="Jane Roe")
+    pat_john_token = get_auth_token(client, "patient_john", "Password123!")
+    pat_jane_token = get_auth_token(client, "patient_jane", "Password123!")
+    headers_john = {"Authorization": f"Bearer {pat_john_token}"}
+    headers_jane = {"Authorization": f"Bearer {pat_jane_token}"}
+
+    # Register Staff and Admin
+    register_user(client, "staff_officer", "staff_off@clinic.com", "Password123!", role="staff")
+    register_user(client, "admin_chief", "admin_chief@clinic.com", "Password123!", role="admin")
+    staff_token = get_auth_token(client, "staff_officer", "Password123!")
+    admin_token = get_auth_token(client, "admin_chief", "Password123!")
+    headers_staff = {"Authorization": f"Bearer {staff_token}"}
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
+
+    # Create 3 Appointments:
+    # 1. John with Dr. Adams
+    res_1 = client.post(
+        "/api/v1/appointments",
+        json={
+            "doctor": "Dr. Adams",
+            "appointment_datetime": (now + timedelta(days=31)).isoformat(),
+            "appointment_type": "Cardiology Consultation",
+            "status": "Scheduled",
+            "notes": "John heart review",
+        },
+        headers=headers_john,
+    )
+    assert res_1.status_code == status.HTTP_201_CREATED
+    apt_1_id = res_1.json()["id"]
+
+    # 2. Jane with Dr. Baker
+    res_2 = client.post(
+        "/api/v1/appointments",
+        json={
+            "doctor": "Dr. Baker",
+            "appointment_datetime": (now + timedelta(days=32)).isoformat(),
+            "appointment_type": "Dental Checkup",
+            "status": "Scheduled",
+            "notes": "Jane tooth cleaning",
+        },
+        headers=headers_jane,
+    )
+    assert res_2.status_code == status.HTTP_201_CREATED
+    apt_2_id = res_2.json()["id"]
+
+    # 3. John with Dr. Baker
+    res_3 = client.post(
+        "/api/v1/appointments",
+        json={
+            "doctor": "Dr. Baker",
+            "appointment_datetime": (now + timedelta(days=33)).isoformat(),
+            "appointment_type": "Dental Checkup",
+            "status": "Scheduled",
+            "notes": "John dental checkup",
+        },
+        headers=headers_john,
+    )
+    assert res_3.status_code == status.HTTP_201_CREATED
+    apt_3_id = res_3.json()["id"]
+
+    # A. Anonymous cannot view appointments -> 401 Unauthorized
+    anon_res = client.get("/api/v1/appointments")
+    assert anon_res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # B. Staff sees ALL 3 appointments
+    staff_res = client.get("/api/v1/appointments", headers=headers_staff)
+    assert staff_res.status_code == status.HTTP_200_OK
+    staff_ids = [a["id"] for a in staff_res.json()]
+    assert apt_1_id in staff_ids
+    assert apt_2_id in staff_ids
+    assert apt_3_id in staff_ids
+
+    # C. Admin sees ALL 3 appointments
+    admin_res = client.get("/api/v1/appointments", headers=headers_admin)
+    assert admin_res.status_code == status.HTTP_200_OK
+    admin_ids = [a["id"] for a in admin_res.json()]
+    assert apt_1_id in admin_ids
+    assert apt_2_id in admin_ids
+    assert apt_3_id in admin_ids
+
+    # D. Dr. Adams sees ONLY Appointment 1 (assigned to Adams)
+    adams_res = client.get("/api/v1/appointments", headers=headers_adams)
+    assert adams_res.status_code == status.HTTP_200_OK
+    adams_ids = [a["id"] for a in adams_res.json()]
+    assert apt_1_id in adams_ids
+    assert apt_2_id not in adams_ids
+    assert apt_3_id not in adams_ids
+    # Dr. Adams cannot snoop on Baker's appointments by ID
+    assert client.get(f"/api/v1/appointments/{apt_2_id}", headers=headers_adams).status_code == status.HTTP_403_FORBIDDEN
+
+    # E. Dr. Baker sees ONLY Appointment 2 and Appointment 3 (assigned to Baker)
+    baker_res = client.get("/api/v1/appointments", headers=headers_baker)
+    assert baker_res.status_code == status.HTTP_200_OK
+    baker_ids = [a["id"] for a in baker_res.json()]
+    assert apt_1_id not in baker_ids
+    assert apt_2_id in baker_ids
+    assert apt_3_id in baker_ids
+    # Dr. Baker cannot snoop on Adams' appointment by ID
+    assert client.get(f"/api/v1/appointments/{apt_1_id}", headers=headers_baker).status_code == status.HTTP_403_FORBIDDEN
+
+    # F. Patient John sees ONLY Appointment 1 and Appointment 3 (booked by John)
+    john_res = client.get("/api/v1/appointments", headers=headers_john)
+    assert john_res.status_code == status.HTTP_200_OK
+    john_ids = [a["id"] for a in john_res.json()]
+    assert apt_1_id in john_ids
+    assert apt_2_id not in john_ids
+    assert apt_3_id in john_ids
+    # John cannot snoop on Jane's appointment by ID
+    assert client.get(f"/api/v1/appointments/{apt_2_id}", headers=headers_john).status_code == status.HTTP_403_FORBIDDEN
+
+    # G. Patient Jane sees ONLY Appointment 2 (booked by Jane)
+    jane_res = client.get("/api/v1/appointments", headers=headers_jane)
+    assert jane_res.status_code == status.HTTP_200_OK
+    jane_ids = [a["id"] for a in jane_res.json()]
+    assert apt_1_id not in jane_ids
+    assert apt_2_id in jane_ids
+    assert apt_3_id not in jane_ids
+    # Jane cannot snoop on John's appointments by ID
+    assert client.get(f"/api/v1/appointments/{apt_1_id}", headers=headers_jane).status_code == status.HTTP_403_FORBIDDEN
+

@@ -12,11 +12,13 @@ import {
   User,
   Stethoscope,
   RefreshCw,
-  Plus
+  Plus,
+  Lock,
+  ArrowRight
 } from 'lucide-react';
 import { appointmentService } from '../services/api';
 
-export default function AppointmentsDirectory({ onNewBookingClick, currentUser }) {
+export default function AppointmentsDirectory({ onNewBookingClick, currentUser, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
   const [stats, setStats] = useState({ total: 0, scheduled: 0, completed: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,10 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
   const [deletingId, setDeletingId] = useState(null);
 
   const fetchAppointments = async () => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {
@@ -51,11 +57,9 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
         search: search.trim() || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
       };
-      if (scopeFilter === 'mine') {
-        if (isPatient && currentUser?.id) {
-          queryParams.patient_id = currentUser.id;
-        } else if (isDoctor) {
-          queryParams.doctor = currentUser.full_name || currentUser.username;
+      if (isAdmin || isStaff) {
+        if (scopeFilter === 'mine') {
+          queryParams.search = currentUser.username;
         }
       }
 
@@ -73,8 +77,12 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
   };
 
   useEffect(() => {
-    fetchAppointments();
-  }, [statusFilter, scopeFilter]);
+    if (currentUser) {
+      fetchAppointments();
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser, statusFilter, scopeFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -133,6 +141,59 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
     }
   };
 
+  if (!currentUser) {
+    return (
+      <div className="appointments-directory-container">
+        <div className="directory-header">
+          <div>
+            <h2>Clinical Appointments Directory</h2>
+            <p>Protected clinical records &bull; Access restricted to authorized practice personnel and patients.</p>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '60px 24px',
+          textAlign: 'center',
+          maxWidth: '560px',
+          margin: '40px auto'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(6, 182, 212, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            color: 'var(--primary)',
+            border: '1px solid rgba(6, 182, 212, 0.3)'
+          }}>
+            <Lock size={30} />
+          </div>
+          <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '8px' }}>
+            Sign In Required
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '24px' }}>
+            Only logged-in staff and administrators can view all practice appointments. Patients can view their booked consultations, and clinicians can view their assigned patient schedules.
+          </p>
+          <button
+            type="button"
+            className="btn-submit"
+            style={{ width: 'auto', padding: '10px 24px', margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            onClick={() => onNavigate && onNavigate('staff')}
+          >
+            <span>Sign In to Access Directory</span>
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="appointments-directory-container">
       {/* Header & Stats Widget */}
@@ -190,7 +251,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="role-pill patient">Patient Account</span>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-              Logged in as <strong>{currentUser.full_name || currentUser.username}</strong> &bull; Managing your doctor appointments and clinical consultations.
+              Logged in as <strong>{currentUser.full_name || currentUser.username}</strong> &bull; Showing only consultations booked by you.
             </span>
           </div>
           <button
@@ -205,59 +266,72 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser }
         </div>
       )}
 
-      {/* Role Authority Indicator Banner */}
-      {currentUser && !isPatient && (
+      {/* Doctor Mode Notification Banner */}
+      {isDoctor && (
         <div style={{
-          background: isAdmin ? 'rgba(244, 63, 94, 0.08)' : isDoctor ? 'rgba(6, 182, 212, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-          border: `1px solid ${isAdmin ? 'rgba(244, 63, 94, 0.25)' : isDoctor ? 'rgba(6, 182, 212, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+          background: 'rgba(6, 182, 212, 0.08)',
+          border: '1px solid rgba(6, 182, 212, 0.25)',
           borderRadius: 'var(--radius-md)',
-          padding: '10px 16px',
-          marginBottom: '16px',
+          padding: '12px 18px',
+          marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px'
+          gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span className={`role-pill ${userRole}`}>
-              {userRole} Access
-            </span>
-            <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-              {isAdmin && 'Administrator Authority: Full appointment CRUD, conflict management, and system user control.'}
-              {isDoctor && 'Doctor Authority: Viewing assigned patient schedules & updating clinical consultation notes.'}
-              {isStaff && 'Reception Staff: Scheduling patient appointments, clinic queue flow & consultation updates.'}
-            </span>
-          </div>
+          <Stethoscope size={18} color="var(--primary)" />
+          <span style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>
+            <strong>Clinician Consultation Schedule:</strong> Logged in as <strong>Dr. {currentUser.full_name || currentUser.username}</strong> &bull; Showing only appointments assigned to you.
+          </span>
         </div>
       )}
 
-      {/* Directory Scope Filter Buttons */}
-      {currentUser && (
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-          <button
-            type="button"
-            className={`specialty-pill-btn ${scopeFilter === 'mine' ? 'active' : ''}`}
-            onClick={() => setScopeFilter('mine')}
-            style={{ fontSize: '0.84rem', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            {isDoctor ? <Stethoscope size={14} /> : <User size={14} />}
-            <span>
-              {isPatient && 'My Bookings'}
-              {isDoctor && `My Doctor Consultations (${currentUser.full_name || currentUser.username})`}
-              {!isPatient && !isDoctor && `My Account Activity (${currentUser.username})`}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`specialty-pill-btn ${scopeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setScopeFilter('all')}
-            style={{ fontSize: '0.84rem', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Calendar size={14} />
-            <span>All Directory Appointments</span>
-          </button>
-        </div>
+      {/* Staff & Admin Full Directory Banner & Scope Filter */}
+      {(isAdmin || isStaff) && (
+        <>
+          <div style={{
+            background: isAdmin ? 'rgba(244, 63, 94, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+            border: `1px solid ${isAdmin ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className={`role-pill ${userRole}`}>
+                {userRole} Access
+              </span>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                {isAdmin && 'Administrator Authority: Practice-wide visibility across all doctors, patients, and schedules.'}
+                {isStaff && 'Clinical Staff: Full practice appointment directory visibility and management.'}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+            <button
+              type="button"
+              className={`specialty-pill-btn ${scopeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setScopeFilter('all')}
+              style={{ fontSize: '0.84rem', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Calendar size={14} />
+              <span>All Practice Appointments</span>
+            </button>
+            <button
+              type="button"
+              className={`specialty-pill-btn ${scopeFilter === 'mine' ? 'active' : ''}`}
+              onClick={() => setScopeFilter('mine')}
+              style={{ fontSize: '0.84rem', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <User size={14} />
+              <span>My Reception Entries ({currentUser.username})</span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* Search and Filters Bar */}
