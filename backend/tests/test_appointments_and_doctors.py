@@ -1,5 +1,11 @@
+import pytest
 from datetime import datetime, timedelta, timezone
 from fastapi import status
+
+
+@pytest.fixture(autouse=True)
+def authenticate_as_staff(client, staff_headers):
+    client.headers.update(staff_headers)
 
 
 def test_get_doctors_directory(client):

@@ -66,10 +66,13 @@ def test_admin_rbac_user_management(client):
 def test_doctor_cannot_delete_appointments(client):
     """Test that doctor role is forbidden from permanently deleting appointments."""
     register_user(client, "dr_sarah", "sarah@medicalwizard.com.au", "DoctorPassword123!", role="doctor", specialization="Cardiologist")
+    register_user(client, "admin_for_del", "admin_del@medicalwizard.com.au", "AdminPassword123!", role="admin")
     doc_token = get_auth_token(client, "dr_sarah", "DoctorPassword123!")
+    admin_token = get_auth_token(client, "admin_for_del", "AdminPassword123!")
     headers_doc = {"Authorization": f"Bearer {doc_token}"}
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
 
-    # Create an appointment
+    # Create an appointment as admin
     now = datetime.now(timezone.utc)
     create_res = client.post(
         "/api/v1/appointments",
@@ -80,6 +83,7 @@ def test_doctor_cannot_delete_appointments(client):
             "appointment_type": "Specialist Consultation",
             "status": "Scheduled",
         },
+        headers=headers_admin,
     )
     assert create_res.status_code == status.HTTP_201_CREATED
     apt_id = create_res.json()["id"]
@@ -203,3 +207,79 @@ def test_staff_and_admin_full_appointments_management(client):
     del_res = client.delete(f"/api/v1/appointments/{apt_id}", headers=headers_staff)
     assert del_res.status_code == status.HTTP_200_OK
     assert del_res.json()["success"] is True
+
+
+def test_appointment_creation_restricted_to_patient_and_staff(client):
+    """
+    Test that ONLY logged-in patients and staff can create appointments.
+    - Unauthenticated visitors get 401 Unauthorized.
+    - Clinicians (doctors) get 403 Forbidden.
+    - Logged-in patients get 201 Created.
+    - Logged-in staff get 201 Created.
+    """
+    now = datetime.now(timezone.utc)
+    target_time = (now + timedelta(days=12)).isoformat()
+
+    # 1. Anonymous visitor attempts to book -> 401 Unauthorized
+    res_anon = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_name": "Anonymous Person",
+            "doctor": "Dr. Sarah Smith",
+            "appointment_datetime": target_time,
+            "appointment_type": "General Consultation",
+            "status": "Scheduled",
+        },
+    )
+    assert res_anon.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # 2. Doctor attempts to book -> 403 Forbidden
+    register_user(client, "dr_booking_test", "dr_book@test.com", "DoctorPassword123!", role="doctor")
+    doc_token = get_auth_token(client, "dr_booking_test", "DoctorPassword123!")
+    res_doc = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_name": "Doctor Booking",
+            "doctor": "Dr. Sarah Smith",
+            "appointment_datetime": target_time,
+            "appointment_type": "General Consultation",
+            "status": "Scheduled",
+        },
+        headers={"Authorization": f"Bearer {doc_token}"},
+    )
+    assert res_doc.status_code == status.HTTP_403_FORBIDDEN
+    assert "patients and staff" in res_doc.json()["detail"].lower()
+
+    # 3. Logged-in Patient books -> 201 Created
+    register_user(client, "patient_valid", "pat_valid@test.com", "PatientPassword123!", role="patient", full_name="Valid Patient")
+    pat_token = get_auth_token(client, "patient_valid", "PatientPassword123!")
+    res_pat = client.post(
+        "/api/v1/appointments",
+        json={
+            "doctor": "Dr. Sarah Smith",
+            "appointment_datetime": target_time,
+            "appointment_type": "General Consultation",
+            "status": "Scheduled",
+        },
+        headers={"Authorization": f"Bearer {pat_token}"},
+    )
+    assert res_pat.status_code == status.HTTP_201_CREATED
+    assert res_pat.json()["patient_name"] == "Valid Patient"
+
+    # 4. Logged-in Staff books on behalf of a patient -> 201 Created
+    another_time = (now + timedelta(days=13)).isoformat()
+    register_user(client, "staff_valid", "staff_valid@test.com", "StaffPassword123!", role="staff")
+    staff_token = get_auth_token(client, "staff_valid", "StaffPassword123!")
+    res_staff = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_name": "Walk-in Guest",
+            "doctor": "Dr. Sarah Smith",
+            "appointment_datetime": another_time,
+            "appointment_type": "General Consultation",
+            "status": "Scheduled",
+        },
+        headers={"Authorization": f"Bearer {staff_token}"},
+    )
+    assert res_staff.status_code == status.HTTP_201_CREATED
+    assert res_staff.json()["patient_name"] == "Walk-in Guest"

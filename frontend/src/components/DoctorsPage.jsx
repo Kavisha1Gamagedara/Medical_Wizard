@@ -24,7 +24,7 @@ const SPECIALTY_FILTERS = [
   { id: 'Pediatrician', label: 'Pediatricians' },
 ];
 
-export default function DoctorsPage({ currentUser, onAppointmentCreated }) {
+export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavigate }) {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -256,6 +256,7 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated }) {
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         onBookingSuccess={handleBookingSuccess}
+        onNavigate={onNavigate}
       />
 
       {/* Doctor Availability & Daily Capacity Modal */}

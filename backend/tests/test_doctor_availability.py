@@ -60,7 +60,7 @@ def test_doctor_configure_availability_and_capacity(client):
     assert all(s["available"] is True for s in sched_data["time_slots"])
 
 
-def test_doctor_daily_capacity_limit_enforcement(client):
+def test_doctor_daily_capacity_limit_enforcement(client, patient_headers):
     """
     Test that when a doctor's max appointments capacity for a date is reached,
     further bookings are rejected with 400 Bad Request.
@@ -91,6 +91,7 @@ def test_doctor_daily_capacity_limit_enforcement(client):
             "appointment_type": "Dental Checkup",
             "status": "Scheduled",
         },
+        headers=patient_headers,
     )
     assert apt1.status_code == status.HTTP_201_CREATED, apt1.text
 
@@ -104,6 +105,7 @@ def test_doctor_daily_capacity_limit_enforcement(client):
             "appointment_type": "Dental Checkup",
             "status": "Scheduled",
         },
+        headers=patient_headers,
     )
     assert apt2.status_code == status.HTTP_201_CREATED, apt2.text
 
@@ -124,12 +126,13 @@ def test_doctor_daily_capacity_limit_enforcement(client):
             "appointment_type": "Dental Checkup",
             "status": "Scheduled",
         },
+        headers=patient_headers,
     )
     assert apt3.status_code == status.HTTP_400_BAD_REQUEST, apt3.text
     assert "limit of 2 appointments" in apt3.json()["detail"].lower()
 
 
-def test_doctor_working_hours_enforcement(client):
+def test_doctor_working_hours_enforcement(client, patient_headers):
     """
     Test that bookings outside a doctor's configured available working hours are rejected.
     """
@@ -158,12 +161,13 @@ def test_doctor_working_hours_enforcement(client):
             "appointment_type": "Specialist Consultation",
             "status": "Scheduled",
         },
+        headers=patient_headers,
     )
     assert res_outside.status_code == status.HTTP_400_BAD_REQUEST
     assert "outside working hours" in res_outside.json()["detail"].lower()
 
 
-def test_doctor_marked_off_blocks_bookings(client):
+def test_doctor_marked_off_blocks_bookings(client, patient_headers):
     """
     Test that when a doctor marks a date as unavailable (is_available = False), bookings are blocked.
     """
@@ -188,6 +192,7 @@ def test_doctor_marked_off_blocks_bookings(client):
             "appointment_type": "Specialist Consultation",
             "status": "Scheduled",
         },
+        headers=patient_headers,
     )
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert "unavailable" in res.json()["detail"].lower()

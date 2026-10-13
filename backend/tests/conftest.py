@@ -54,3 +54,41 @@ def client(db_session):
     with TestClient(fastapi_app) as test_client:
         yield test_client
     fastapi_app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def staff_headers(db_session):
+    from app.models.user import User
+    from app.core.security import get_password_hash, create_access_token
+
+    staff_user = User(
+        email="conftest_staff@medicalwizard.com.au",
+        username="conftest_staff",
+        hashed_password=get_password_hash("StaffPassword123!"),
+        role="staff",
+        full_name="Clinic Staff",
+        is_active=True,
+    )
+    db_session.add(staff_user)
+    db_session.commit()
+    token = create_access_token(subject=staff_user.id, extra_claims={"role": "staff"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="function")
+def patient_headers(db_session):
+    from app.models.user import User
+    from app.core.security import get_password_hash, create_access_token
+
+    patient_user = User(
+        email="conftest_patient@medicalwizard.com.au",
+        username="conftest_patient",
+        hashed_password=get_password_hash("PatientPassword123!"),
+        role="patient",
+        full_name="Patient User",
+        is_active=True,
+    )
+    db_session.add(patient_user)
+    db_session.commit()
+    token = create_access_token(subject=patient_user.id, extra_claims={"role": "patient"})
+    return {"Authorization": f"Bearer {token}"}

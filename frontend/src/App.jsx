@@ -170,7 +170,11 @@ export default function App() {
       {/* Main Content Area */}
       <main className="portal-main-container">
         {activeTab === 'doctors' && (
-          <DoctorsPage currentUser={user} onAppointmentCreated={handleAppointmentCreated} />
+          <DoctorsPage 
+            currentUser={user} 
+            onAppointmentCreated={handleAppointmentCreated} 
+            onNavigate={setActiveTab} 
+          />
         )}
 
         {activeTab === 'appointments' && (

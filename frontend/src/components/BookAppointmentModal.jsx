@@ -9,7 +9,8 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react';
 import { appointmentService, doctorService } from '../services/api';
 
@@ -22,7 +23,7 @@ const APPOINTMENT_TYPES = [
   'Pre-procedure Assessment',
 ];
 
-export default function BookAppointmentModal({ doctor, currentUser, isOpen, onClose, onBookingSuccess }) {
+export default function BookAppointmentModal({ doctor, currentUser, isOpen, onClose, onBookingSuccess, onNavigate }) {
   if (!isOpen || !doctor) return null;
 
   const doctorName = doctor.full_name || `Dr. ${doctor.username}`;
@@ -92,6 +93,13 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   // Derived validation: whether user has picked a past date/time
   const isPastSelected = isPastDateTime(appointmentDatetime);
   const selectedDateStr = appointmentDatetime ? appointmentDatetime.slice(0, 10) : '';
+
+  // Role and Authentication checks: strictly patients and staff/admin can book
+  const isPatientOrStaff = Boolean(
+    currentUser && (currentUser.role === 'patient' || currentUser.role === 'staff' || currentUser.role === 'admin')
+  );
+  const isDoctor = currentUser?.role === 'doctor';
+  const isAnonymous = !currentUser;
 
   // Fetch doctor's available times and daily appointment capacity for chosen date
   useEffect(() => {
@@ -171,6 +179,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!currentUser) {
+      setErrorMsg('Sign In Required: Only logged-in patients and authorized staff can create clinical appointments.');
+      return;
+    }
+
+    if (!isPatientOrStaff) {
+      setErrorMsg('Access Denied: Only patients and clinic staff can create appointments. Doctor accounts cannot book consultations.');
+      return;
+    }
 
     if (!patientName.trim()) {
       setErrorMsg('Please enter the patient full name.');
@@ -372,6 +390,70 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 </span>
               )}
             </div>
+
+            {isAnonymous && (
+              <div 
+                className="alert-box alert-warning" 
+                style={{ 
+                  marginBottom: '18px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '8px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  borderColor: 'rgba(245, 158, 11, 0.35)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#f59e0b' }}>
+                  <Lock size={16} />
+                  <span>Sign In Required to Book</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                  Only logged-in patients and authorized clinical staff can book appointments. Please sign in or register a patient account to reserve your appointment with {doctorName}.
+                </p>
+                {onNavigate && (
+                  <button
+                    type="button"
+                    className="btn-submit"
+                    style={{ 
+                      width: 'auto', 
+                      alignSelf: 'flex-start', 
+                      padding: '7px 16px', 
+                      fontSize: '0.82rem', 
+                      marginTop: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    onClick={() => {
+                      handleClose();
+                      onNavigate('staff');
+                    }}
+                  >
+                    <span>Sign In / Register</span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isDoctor && (
+              <div 
+                className="alert-box alert-warning" 
+                style={{ 
+                  marginBottom: '18px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  borderColor: 'rgba(245, 158, 11, 0.35)'
+                }}
+              >
+                <AlertCircle size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.84rem', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: '#f59e0b' }}>Clinician Notice:</strong> Doctor accounts cannot book appointments. Only patients and authorized clinic staff can schedule consultations.
+                </span>
+              </div>
+            )}
 
             {errorMsg && (
               <div className="alert-box alert-danger">
@@ -620,12 +702,18 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   width: 'auto', 
                   padding: '10px 24px', 
                   margin: 0,
-                  opacity: (conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 0.45 : 1,
-                  cursor: (conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 'not-allowed' : 'pointer'
+                  opacity: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 0.45 : 1,
+                  cursor: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 'not-allowed' : 'pointer'
                 }}
-                disabled={loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime || Boolean(daySchedule?.is_capacity_reached) || daySchedule?.is_available === false}
+                disabled={!isPatientOrStaff || loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime || Boolean(daySchedule?.is_capacity_reached) || daySchedule?.is_available === false}
                 id="btn-confirm-booking"
-                title={isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined}
+                title={
+                  !currentUser 
+                    ? 'Sign in required: Only logged-in patients and authorized staff can book appointments' 
+                    : (isDoctor 
+                        ? 'Clinician notice: Doctor accounts cannot book appointments' 
+                        : (isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined))
+                }
               >
                 {loading ? (
                   <>

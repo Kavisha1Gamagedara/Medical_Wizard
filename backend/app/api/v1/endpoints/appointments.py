@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.user import User
-from app.api.deps import get_optional_current_user
+from app.api.deps import get_current_user, get_optional_current_user
 from app.schemas.appointment import (
     AppointmentCreate,
     AppointmentUpdate,
@@ -56,15 +56,22 @@ def get_appointments(
 def create_appointment(
     appointment_in: AppointmentCreate,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Create a new clinical appointment.
-    Includes automated schedule conflict detection for the selected doctor.
-    Enforces RBAC:
+    Enforces strict RBAC:
+    - Only logged-in patients and staff (including admins) can create appointments.
+    - Clinicians (doctors) and unauthenticated users cannot create appointments.
     - If logged in as patient, appointment is tied directly to their patient account.
     """
-    if current_user and current_user.role == "patient":
+    if current_user.role not in ["patient", "staff", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operation not permitted: Only logged-in patients and staff members can create appointments.",
+        )
+
+    if current_user.role == "patient":
         appointment_in.patient_id = current_user.id
         if not appointment_in.patient_name:
             appointment_in.patient_name = current_user.full_name or current_user.username
