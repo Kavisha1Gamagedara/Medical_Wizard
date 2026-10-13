@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.core.database import get_db
-from app.api.deps import require_admin, get_optional_current_user
+from app.api.deps import require_admin, get_optional_current_user, require_staff_or_admin
 from app.models.user import User
 from app.models.appointment import Appointment
 from app.schemas.user import UserCreate, UserResponse
@@ -113,6 +113,31 @@ def get_admin_system_summary(
         "weekday_trend": weekday_counts,
         "specialties": specialties,
     }
+
+
+@router.get("/patients", response_model=List[UserResponse])
+def search_registered_patients(
+    search: Optional[str] = Query(None, description="Search across full name, email, or username"),
+    db: Session = Depends(get_db),
+    current_staff_or_admin: User = Depends(require_staff_or_admin),
+):
+    """
+    Search and retrieve registered active patients for appointment booking.
+    Accessible to authorized clinic staff and practice administrators.
+    """
+    query = db.query(User).filter(User.role == "patient", User.is_active == True)
+
+    if search and search.strip():
+        search_pattern = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                User.full_name.ilike(search_pattern),
+                User.username.ilike(search_pattern),
+                User.email.ilike(search_pattern),
+            )
+        )
+
+    return query.order_by(User.full_name.asc(), User.username.asc()).limit(50).all()
 
 
 @router.put("/{user_id}/role", response_model=UserResponse)
