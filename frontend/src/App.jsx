@@ -8,19 +8,36 @@ import {
   LogOut, 
   Sparkles,
   CheckCircle2,
-  Lock
+  Lock,
+  Activity,
+  QrCode,
+  Bell,
+  Settings,
+  Users,
+  UserPlus
 } from 'lucide-react';
+import CityCareDashboard from './components/CityCareDashboard';
 import DoctorsPage from './components/DoctorsPage';
 import AppointmentsDirectory from './components/AppointmentsDirectory';
+import PatientsDirectory from './components/PatientsDirectory';
 import DashboardPreview from './components/DashboardPreview';
 import LoginCard from './components/LoginCard';
+import StaffVerifyPatientModal from './components/StaffVerifyPatientModal';
+import AdminRegisterUserModal from './components/AdminRegisterUserModal';
 import { authService } from './services/api';
+import citycareAvatar from './assets/citycare_avatar.jpg';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('doctors'); // 'doctors' | 'appointments' | 'staff'
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'dashboard' | 'patients' | 'appointments' | 'doctors' | 'analytics' | 'staff'
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Modals state
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     // Check saved session on app load
@@ -52,11 +69,14 @@ export default function App() {
   const handleLoginSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
     showToast(`Welcome back, ${authenticatedUser.full_name || authenticatedUser.username}!`);
+    setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
     setUser(null);
-    showToast('Signed out of staff portal.');
+    setShowProfileMenu(false);
+    setActiveTab('home');
+    showToast('Signed out successfully.');
   };
 
   const handleAppointmentCreated = (newApt) => {
@@ -66,109 +86,375 @@ export default function App() {
 
   if (checkingAuth) {
     return (
-      <div className="auth-page-wrapper" style={{ flexDirection: 'column', gap: '16px' }}>
-        <div className="spinner" style={{ width: '32px', height: '32px', borderWidth: '3px' }} />
-        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Initializing Medical Wizard Portal...
+      <div className="citycare-loading-screen">
+        <div className="spinner" style={{ width: '36px', height: '36px', borderWidth: '3px' }} />
+        <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
+          Initializing CityCare &bull; Medical Wizard Platform...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="portal-root-wrapper">
+    <div className="citycare-app-root">
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="portal-toast-banner">
-          <CheckCircle2 size={18} color="var(--emerald-accent)" />
+          <CheckCircle2 size={18} color="#10b981" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Global Clinical Navigation Header */}
-      <header className="global-nav-header">
-        <div className="nav-brand-group">
-          <div className="brand-logo-icon">
-            <HeartPulse size={22} />
+      {/* 1. UNIFIED CITYCARE APPLICATION HEADER */}
+      <header className="citycare-global-header">
+        {/* Brand Group */}
+        <div className="citycare-brand-group" onClick={() => setActiveTab('home')}>
+          <div className="citycare-brand-logo-mark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+              <path d="M12 7V17M7 12H17" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
           </div>
-          <div className="brand-titles">
-            <h1 style={{ fontSize: '1.2rem', margin: 0 }}>Medical Wizard</h1>
-            <p style={{ fontSize: '0.68rem', margin: 0 }}>Clinical Appointment System</p>
+          <div>
+            <span className="citycare-brand-title">CityCare</span>
+            <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Medical Wizard
+            </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav className="header-nav-tabs">
-          <button
-            type="button"
-            className={`nav-tab-btn ${activeTab === 'doctors' ? 'active' : ''}`}
-            onClick={() => setActiveTab('doctors')}
-            id="tab-doctors"
+        {/* Center Pill Menu Tabs */}
+        <nav className="citycare-pill-menu">
+          <button 
+            type="button" 
+            className={`citycare-pill-btn ${activeTab === 'home' ? 'active' : ''}`}
+            onClick={() => setActiveTab('home')}
+            id="tab-home"
           >
-            <Stethoscope size={16} />
-            <span>Find Doctors &amp; Book</span>
+            Home
           </button>
 
-          <button
-            type="button"
-            className={`nav-tab-btn ${activeTab === 'appointments' ? 'active' : ''}`}
+          {/* Dashboard button only visible after logged in */}
+          {user && (
+            <button 
+              type="button" 
+              className={`citycare-pill-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+              id="tab-dashboard"
+            >
+              Dashboard
+            </button>
+          )}
+
+          <button 
+            type="button" 
+            className={`citycare-pill-btn ${activeTab === 'patients' ? 'active' : ''}`}
+            onClick={() => setActiveTab('patients')}
+            id="tab-patients"
+          >
+            Patients
+          </button>
+          <button 
+            type="button" 
+            className={`citycare-pill-btn ${activeTab === 'appointments' ? 'active' : ''}`}
             onClick={() => setActiveTab('appointments')}
             id="tab-appointments"
           >
-            <Calendar size={16} />
-            <span>Appointments Directory</span>
+            Appointments
           </button>
-
-          <button
-            type="button"
-            className={`nav-tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
-            onClick={() => setActiveTab('staff')}
-            id="tab-staff"
+          <button 
+            type="button" 
+            className={`citycare-pill-btn ${activeTab === 'doctors' ? 'active' : ''}`}
+            onClick={() => setActiveTab('doctors')}
+            id="tab-doctors"
           >
-            {user ? <User size={16} /> : <Lock size={16} />}
-            <span>
-              {user 
-                ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}: ${user.username}` 
-                : 'Sign In / Portal'}
-            </span>
+            Doctors
           </button>
         </nav>
 
-        {/* User Status / Quick Action */}
-        <div className="header-user-status">
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span className={`role-pill ${user.role}`}>
-                {user.role}
-              </span>
-              <button
-                type="button"
-                className="btn-logout"
-                style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                onClick={() => {
-                  authService.logout();
-                  handleLogout();
-                }}
-              >
-                <LogOut size={13} />
-                <span>Exit</span>
-              </button>
-            </div>
-          ) : (
+        {/* Right Controls: Staff Quick Action, Notification Bell, Settings, Avatar */}
+        <div className="citycare-nav-right">
+          {user && (user.role === 'staff' || user.role === 'admin') && (
             <button
               type="button"
-              className="btn-cancel"
-              style={{ fontSize: '0.78rem', padding: '6px 14px' }}
-              onClick={() => setActiveTab('staff')}
+              className="citycare-pill-btn active"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                background: '#0f172a',
+                color: '#fff'
+              }}
+              onClick={() => setIsVerifyModalOpen(true)}
+              title="Verify Patient Arrival Code"
             >
-              Sign In
+              <QrCode size={14} color="#38bdf8" />
+              <span>Verify Pass</span>
+            </button>
+          )}
+
+          {/* Notifications Button */}
+          <div style={{ position: 'relative' }}>
+            <button 
+              type="button" 
+              className="citycare-icon-btn" 
+              title="Notifications"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell size={18} color="#334155" />
+              <span className="citycare-badge-dot" />
+            </button>
+
+            {showNotifications && (
+              <div className="citycare-notifications-popover">
+                <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                  Clinical Alerts (3)
+                </div>
+                <div className="citycare-notif-item">
+                  <span className="dot danger" />
+                  <div>
+                    <strong>ICU Beds Below 10%</strong>
+                    <small>Emergency ward telemetry &bull; 5m ago</small>
+                  </div>
+                </div>
+                <div className="citycare-notif-item">
+                  <span className="dot warning" />
+                  <div>
+                    <strong>Ventilator Maintenance Due</strong>
+                    <small>Unit B-12 calibration &bull; 15m ago</small>
+                  </div>
+                </div>
+                <div className="citycare-notif-item">
+                  <span className="dot success" />
+                  <div>
+                    <strong>Patient Check-In Verified</strong>
+                    <small>Dr. Emily Jones consultation &bull; 22m ago</small>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Settings Button */}
+          <button 
+            type="button" 
+            className="citycare-icon-btn" 
+            title="System & Account Settings"
+            onClick={() => {
+              if (user?.role === 'admin') setIsAdminRegisterOpen(true);
+              else if (user?.role === 'staff') setIsVerifyModalOpen(true);
+              else setActiveTab('staff');
+            }}
+          >
+            <Settings size={18} color="#334155" />
+          </button>
+
+          {/* User Profile Area: Sign In / Register button when logged out, Initials Badge when logged in */}
+          {user ? (
+            <div style={{ position: 'relative' }}>
+              <div 
+                className="citycare-user-badge-wrap"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                title={`${user.full_name || user.username} (${user.role})`}
+              >
+                <div className={`citycare-user-avatar-initials ${user.role}`}>
+                  {(user.full_name || user.username).slice(0, 2).toUpperCase()}
+                </div>
+                <div className="citycare-user-nav-info">
+                  <span className="user-nav-name">{user.full_name?.split(' ')[0] || user.username}</span>
+                  <span className={`user-nav-role-pill ${user.role}`}>{user.role}</span>
+                </div>
+              </div>
+
+              {showProfileMenu && (
+                <div className="citycare-profile-dropdown">
+                  <div className="citycare-dropdown-header">
+                    <strong>{user.full_name || user.username}</strong>
+                    <span className="citycare-dropdown-role">{user.role}</span>
+                    <small style={{ color: '#64748b' }}>{user.email}</small>
+                  </div>
+
+                  {(user.role === 'staff' || user.role === 'admin') && (
+                    <button 
+                      type="button" 
+                      className="citycare-dropdown-item"
+                      onClick={() => { setShowProfileMenu(false); setIsVerifyModalOpen(true); }}
+                    >
+                      <ShieldCheck size={14} color="#0284c7" />
+                      <span>Verify Patient Check-In</span>
+                    </button>
+                  )}
+
+                  {user.role === 'admin' && (
+                    <button 
+                      type="button" 
+                      className="citycare-dropdown-item"
+                      onClick={() => { setShowProfileMenu(false); setIsAdminRegisterOpen(true); }}
+                    >
+                      <UserPlus size={14} color="#10b981" />
+                      <span>Register Doctor / Staff</span>
+                    </button>
+                  )}
+
+                  <button 
+                    type="button" 
+                    className="citycare-dropdown-item"
+                    onClick={() => { setShowProfileMenu(false); setActiveTab('staff'); }}
+                  >
+                    <Activity size={14} />
+                    <span>Account Portal</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="citycare-dropdown-item danger"
+                    onClick={() => {
+                      authService.logout();
+                      handleLogout();
+                    }}
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button 
+              type="button" 
+              className="citycare-nav-signin-btn"
+              onClick={() => setActiveTab('staff')}
+              id="btn-nav-signin-register"
+            >
+              <User size={15} />
+              <span>Sign In / Register</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="portal-main-container">
+      {/* 2. MAIN APPLICATION CONTENT AREA (UNIFIED CANVAS) */}
+      <main className="citycare-main-viewport">
+        {/* HOME TAB (PUBLIC CLINICAL PORTAL) */}
+        {activeTab === 'home' && (
+          <CityCareDashboard 
+            currentUser={null}
+            onNavigate={setActiveTab}
+          />
+        )}
+
+        {/* DASHBOARD TAB (ROLE-BASED & ONLY ACCESSIBLE WHEN LOGGED IN) */}
+        {activeTab === 'dashboard' && (
+          user ? (
+            <CityCareDashboard 
+              currentUser={user}
+              onNavigate={setActiveTab}
+            />
+          ) : (
+            <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
+              <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+                <div className="mini-icon-circle blue" style={{ width: '56px', height: '56px', borderRadius: '16px', margin: '0 auto 16px auto' }}>
+                  <ShieldCheck size={28} />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  Dashboard Requires Sign In
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.86rem', marginBottom: '24px' }}>
+                  Please sign in to access your role-based patient, clinician, front-desk, or administrative dashboard.
+                </p>
+                <button
+                  type="button"
+                  className="btn-guest-primary"
+                  style={{ margin: '0 auto' }}
+                  onClick={() => setActiveTab('staff')}
+                >
+                  <User size={15} />
+                  <span>Sign In / Register</span>
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* PATIENTS TAB */}
+        {activeTab === 'patients' && (
+          user ? (
+            <PatientsDirectory 
+              currentUser={user}
+              onNavigate={setActiveTab}
+            />
+          ) : (
+            <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
+              <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+                <div className="mini-icon-circle blue" style={{ width: '56px', height: '56px', borderRadius: '16px', margin: '0 auto 16px auto' }}>
+                  <Stethoscope size={28} />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  Patient Records Require Authentication
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.86rem', marginBottom: '24px' }}>
+                  Please sign in with a registered clinician, front-desk staff, or practice administrator account to access confidential patient records.
+                </p>
+                <button
+                  type="button"
+                  className="btn-guest-primary"
+                  style={{ margin: '0 auto' }}
+                  onClick={() => setActiveTab('staff')}
+                >
+                  <User size={15} />
+                  <span>Sign In to Your Account</span>
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* APPOINTMENTS TAB */}
+        {activeTab === 'appointments' && (
+          user ? (
+            <AppointmentsDirectory 
+              currentUser={user} 
+              onNewBookingClick={() => setActiveTab('doctors')} 
+              onNavigate={setActiveTab}
+            />
+          ) : (
+            <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
+              <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+                <div className="mini-icon-circle blue" style={{ width: '56px', height: '56px', borderRadius: '16px', margin: '0 auto 16px auto' }}>
+                  <Calendar size={28} />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  Sign In to Manage Appointments
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.86rem', marginBottom: '24px' }}>
+                  Sign in to view your scheduled consultations, track clinical status, and access printable arrival QR passes.
+                </p>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-guest-primary"
+                    onClick={() => setActiveTab('staff')}
+                  >
+                    <User size={15} />
+                    <span>Sign In / Register</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="action-pill-btn"
+                    onClick={() => setActiveTab('doctors')}
+                  >
+                    <Calendar size={15} />
+                    <span>Browse Doctors</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* DOCTORS TAB */}
         {activeTab === 'doctors' && (
           <DoctorsPage 
             currentUser={user} 
@@ -177,45 +463,26 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'appointments' && (
-          <AppointmentsDirectory 
-            currentUser={user} 
-            onNewBookingClick={() => setActiveTab('doctors')} 
-            onNavigate={setActiveTab}
-          />
-        )}
 
+        {/* STAFF & ACCOUNT PORTAL / LOGIN */}
         {activeTab === 'staff' && (
           user ? (
-            <DashboardPreview user={user} onLogout={handleLogout} onNavigate={setActiveTab} />
+            <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '0 20px' }}>
+              <DashboardPreview user={user} onLogout={handleLogout} onNavigate={setActiveTab} />
+            </div>
           ) : (
-            <div className="auth-page-wrapper" style={{ minHeight: 'calc(100vh - 75px)', padding: '20px 0' }}>
-              <div className="auth-ambient-glow" />
-              <div className="auth-container">
-                <div className="brand-showcase">
-                  <div className="brand-header">
-                    <div className="brand-logo-icon">
-                      <HeartPulse size={26} />
-                    </div>
-                    <div className="brand-titles">
-                      <h1>Medical Wizard</h1>
-                      <p>Practice Intelligence</p>
-                    </div>
+            <div className="citycare-auth-wrapper">
+              <div className="citycare-auth-card">
+                <div className="citycare-auth-brand">
+                  <div className="citycare-brand-logo-mark" style={{ width: '44px', height: '44px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M12 7V17M7 12H17" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
                   </div>
-
-                  <div className="brand-hero-content">
-                    <div className="badge-tag">
-                      <Sparkles size={13} />
-                      Patient &amp; Staff Access
-                    </div>
-                    <h2>Secure Medical <span>Appointments &amp; Practice</span></h2>
-                    <p>
-                      Patients can sign in to book consultations with specialists and review upcoming appointments. Clinical staff can manage schedules and doctor profiles.
-                    </p>
-                  </div>
-
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-                    Medical Wizard &bull; AI Engineering Assessment
+                  <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>CityCare Access Portal</h2>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Patients &bull; Clinicians &bull; Hospital Administration</p>
                   </div>
                 </div>
 
@@ -225,6 +492,30 @@ export default function App() {
           )
         )}
       </main>
+
+      {/* 3. MODALS */}
+      {/* Front-Desk Verification & Check-In Modal */}
+      {isVerifyModalOpen && (
+        <StaffVerifyPatientModal 
+          isOpen={isVerifyModalOpen}
+          currentUser={user}
+          onClose={() => setIsVerifyModalOpen(false)}
+          onCheckInSuccess={(apt) => {
+            showToast(`Patient ${apt.patient_name} verified and checked in!`);
+          }}
+        />
+      )}
+
+      {/* Admin User Provisioning Modal */}
+      {isAdminRegisterOpen && (
+        <AdminRegisterUserModal
+          isOpen={isAdminRegisterOpen}
+          onClose={() => setIsAdminRegisterOpen(false)}
+          onUserRegistered={(newUser) => {
+            showToast(`Registered new ${newUser.role}: ${newUser.username}!`);
+          }}
+        />
+      )}
     </div>
   );
 }
