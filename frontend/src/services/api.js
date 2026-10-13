@@ -216,5 +216,9 @@ export const userService = {
       method: 'PUT',
     });
   },
+
+  async getAdminSummary() {
+    return await apiRequest('/api/v1/users/summary');
+  },
 };
 
