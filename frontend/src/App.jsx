@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  HeartPulse, 
-  Stethoscope, 
-  Calendar, 
-  ShieldCheck, 
-  User, 
-  LogOut, 
+import {
+  HeartPulse,
+  Stethoscope,
+  Calendar,
+  ShieldCheck,
+  User,
+  LogOut,
   Sparkles,
   CheckCircle2,
   Lock,
@@ -22,6 +22,7 @@ import AppointmentsDirectory from './components/AppointmentsDirectory';
 import PatientsDirectory from './components/PatientsDirectory';
 import DashboardPreview from './components/DashboardPreview';
 import LoginCard from './components/LoginCard';
+import CreativeAuthPortal from './components/CreativeAuthPortal';
 import StaffVerifyPatientModal from './components/StaffVerifyPatientModal';
 import AdminRegisterUserModal from './components/AdminRegisterUserModal';
 import { authService } from './services/api';
@@ -29,6 +30,7 @@ import citycareAvatar from './assets/citycare_avatar.jpg';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'dashboard' | 'patients' | 'appointments' | 'doctors' | 'analytics' | 'staff'
+  const [activeSection, setActiveSection] = useState('home'); // 'home' | 'about' | 'faq'
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
@@ -61,6 +63,72 @@ export default function App() {
     verifyExistingSession();
   }, []);
 
+  // Seamless navigation handler that scrolls to page sections on Home
+  const handleNavClick = (target) => {
+    if (target === 'about' || target === 'faq') {
+      const targetId = target === 'about' ? 'about-us' : 'faq';
+      setActiveSection(target);
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        setTimeout(() => {
+          const el = document.getElementById(targetId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 120);
+      } else {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    } else {
+      setActiveTab(target);
+      if (target === 'home') {
+        setActiveSection('home');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setActiveSection('');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Auto-scroll listener to highlight navbar pill as user scrolls through Home
+  useEffect(() => {
+    if (activeTab !== 'home') return;
+
+    const handleScroll = () => {
+      const aboutEl = document.getElementById('about-us');
+      const faqEl = document.getElementById('faq');
+      if (!aboutEl || !faqEl) return;
+
+      const scrollPos = window.scrollY + 240;
+      const faqTop = faqEl.offsetTop;
+      const aboutTop = aboutEl.offsetTop;
+
+      if (scrollPos >= faqTop) {
+        setActiveSection('faq');
+      } else if (scrollPos >= aboutTop) {
+        setActiveSection('about');
+      } else {
+        setActiveSection('home');
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab]);
+
+  // Handle direct tab switches for 'about' or 'faq'
+  useEffect(() => {
+    if (activeTab === 'about') {
+      handleNavClick('about');
+    } else if (activeTab === 'faq') {
+      handleNavClick('faq');
+    }
+  }, [activeTab]);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 4000);
@@ -76,6 +144,7 @@ export default function App() {
     setUser(null);
     setShowProfileMenu(false);
     setActiveTab('home');
+    setActiveSection('home');
     showToast('Signed out successfully.');
   };
 
@@ -108,7 +177,7 @@ export default function App() {
       {/* 1. UNIFIED CITYCARE APPLICATION HEADER */}
       <header className="citycare-global-header">
         {/* Brand Group */}
-        <div className="citycare-brand-group" onClick={() => setActiveTab('home')}>
+        <div className="citycare-brand-group" onClick={() => handleNavClick('home')}>
           <div className="citycare-brand-logo-mark">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
@@ -125,10 +194,10 @@ export default function App() {
 
         {/* Center Pill Menu Tabs */}
         <nav className="citycare-pill-menu">
-          <button 
-            type="button" 
-            className={`citycare-pill-btn ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => setActiveTab('home')}
+          <button
+            type="button"
+            className={`citycare-pill-btn ${activeTab === 'home' && activeSection === 'home' ? 'active' : ''}`}
+            onClick={() => handleNavClick('home')}
             id="tab-home"
           >
             Home
@@ -136,39 +205,65 @@ export default function App() {
 
           {/* Dashboard button only visible after logged in */}
           {user && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`citycare-pill-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => handleNavClick('dashboard')}
               id="tab-dashboard"
             >
               Dashboard
             </button>
           )}
 
-          <button 
-            type="button" 
-            className={`citycare-pill-btn ${activeTab === 'patients' ? 'active' : ''}`}
-            onClick={() => setActiveTab('patients')}
-            id="tab-patients"
-          >
-            Patients
-          </button>
-          <button 
-            type="button" 
-            className={`citycare-pill-btn ${activeTab === 'appointments' ? 'active' : ''}`}
-            onClick={() => setActiveTab('appointments')}
-            id="tab-appointments"
-          >
-            Appointments
-          </button>
-          <button 
-            type="button" 
+          {/* Patients button only visible to logged in staff and admin */}
+          {user && (user.role === 'staff' || user.role === 'admin') && (
+            <button
+              type="button"
+              className={`citycare-pill-btn ${activeTab === 'patients' ? 'active' : ''}`}
+              onClick={() => handleNavClick('patients')}
+              id="tab-patients"
+            >
+              Patients
+            </button>
+          )}
+
+          {/* Appointments button visible to logged in staff, admin, and patients */}
+          {user && (user.role === 'staff' || user.role === 'admin' || user.role === 'patient' || user.role === 'doctor') && (
+            <button
+              type="button"
+              className={`citycare-pill-btn ${activeTab === 'appointments' ? 'active' : ''}`}
+              onClick={() => handleNavClick('appointments')}
+              id="tab-appointments"
+            >
+              Appointments
+            </button>
+          )}
+
+          <button
+            type="button"
             className={`citycare-pill-btn ${activeTab === 'doctors' ? 'active' : ''}`}
-            onClick={() => setActiveTab('doctors')}
+            onClick={() => handleNavClick('doctors')}
             id="tab-doctors"
           >
             Doctors
+          </button>
+
+          <button
+            type="button"
+            className={`citycare-pill-btn ${activeTab === 'home' && activeSection === 'about' ? 'active' : ''}`}
+            onClick={() => handleNavClick('about')}
+            id="tab-about"
+          >
+            About Us
+          </button>
+
+          <button
+            type="button"
+            className={`citycare-pill-btn ${activeTab === 'home' && activeSection === 'faq' ? 'active' : ''}`}
+            onClick={() => handleNavClick('faq')}
+            id="tab-faq"
+          >
+            FAQ
           </button>
         </nav>
 
@@ -197,9 +292,9 @@ export default function App() {
 
           {/* Notifications Button */}
           <div style={{ position: 'relative' }}>
-            <button 
-              type="button" 
-              className="citycare-icon-btn" 
+            <button
+              type="button"
+              className="citycare-icon-btn"
               title="Notifications"
               onClick={() => setShowNotifications(!showNotifications)}
             >
@@ -238,9 +333,9 @@ export default function App() {
           </div>
 
           {/* Settings Button */}
-          <button 
-            type="button" 
-            className="citycare-icon-btn" 
+          <button
+            type="button"
+            className="citycare-icon-btn"
             title="System & Account Settings"
             onClick={() => {
               if (user?.role === 'admin') setIsAdminRegisterOpen(true);
@@ -254,7 +349,7 @@ export default function App() {
           {/* User Profile Area: Sign In / Register button when logged out, Initials Badge when logged in */}
           {user ? (
             <div style={{ position: 'relative' }}>
-              <div 
+              <div
                 className="citycare-user-badge-wrap"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 title={`${user.full_name || user.username} (${user.role})`}
@@ -277,8 +372,8 @@ export default function App() {
                   </div>
 
                   {(user.role === 'staff' || user.role === 'admin') && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="citycare-dropdown-item"
                       onClick={() => { setShowProfileMenu(false); setIsVerifyModalOpen(true); }}
                     >
@@ -288,8 +383,8 @@ export default function App() {
                   )}
 
                   {user.role === 'admin' && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="citycare-dropdown-item"
                       onClick={() => { setShowProfileMenu(false); setIsAdminRegisterOpen(true); }}
                     >
@@ -298,17 +393,17 @@ export default function App() {
                     </button>
                   )}
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="citycare-dropdown-item"
-                    onClick={() => { setShowProfileMenu(false); setActiveTab('staff'); }}
+                    onClick={() => { setShowProfileMenu(false); handleNavClick('staff'); }}
                   >
                     <Activity size={14} />
                     <span>Account Portal</span>
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="citycare-dropdown-item danger"
                     onClick={() => {
                       authService.logout();
@@ -322,10 +417,10 @@ export default function App() {
               )}
             </div>
           ) : (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="citycare-nav-signin-btn"
-              onClick={() => setActiveTab('staff')}
+              onClick={() => handleNavClick('staff')}
               id="btn-nav-signin-register"
             >
               <User size={15} />
@@ -339,18 +434,18 @@ export default function App() {
       <main className="citycare-main-viewport">
         {/* HOME TAB (PUBLIC CLINICAL PORTAL) */}
         {activeTab === 'home' && (
-          <CityCareDashboard 
+          <CityCareDashboard
             currentUser={null}
-            onNavigate={setActiveTab}
+            onNavigate={handleNavClick}
           />
         )}
 
         {/* DASHBOARD TAB (ROLE-BASED & ONLY ACCESSIBLE WHEN LOGGED IN) */}
         {activeTab === 'dashboard' && (
           user ? (
-            <CityCareDashboard 
+            <CityCareDashboard
               currentUser={user}
-              onNavigate={setActiveTab}
+              onNavigate={handleNavClick}
             />
           ) : (
             <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
@@ -380,10 +475,10 @@ export default function App() {
 
         {/* PATIENTS TAB */}
         {activeTab === 'patients' && (
-          user ? (
-            <PatientsDirectory 
+          user && (user.role === 'staff' || user.role === 'admin') ? (
+            <PatientsDirectory
               currentUser={user}
-              onNavigate={setActiveTab}
+              onNavigate={handleNavClick}
             />
           ) : (
             <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
@@ -392,19 +487,19 @@ export default function App() {
                   <Stethoscope size={28} />
                 </div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                  Patient Records Require Authentication
+                  Patient Records Require Staff Authentication
                 </h3>
                 <p style={{ color: '#64748b', fontSize: '0.86rem', marginBottom: '24px' }}>
-                  Please sign in with a registered clinician, front-desk staff, or practice administrator account to access confidential patient records.
+                  Access to the complete patient records directory is strictly reserved for authorized clinical staff and practice administrators.
                 </p>
                 <button
                   type="button"
                   className="btn-guest-primary"
                   style={{ margin: '0 auto' }}
-                  onClick={() => setActiveTab('staff')}
+                  onClick={() => handleNavClick(user ? (user.role === 'patient' ? 'appointments' : 'dashboard') : 'staff')}
                 >
                   <User size={15} />
-                  <span>Sign In to Your Account</span>
+                  <span>{user ? (user.role === 'patient' ? 'View My Appointments' : 'Go to Dashboard') : 'Sign In to Your Account'}</span>
                 </button>
               </div>
             </div>
@@ -414,10 +509,10 @@ export default function App() {
         {/* APPOINTMENTS TAB */}
         {activeTab === 'appointments' && (
           user ? (
-            <AppointmentsDirectory 
-              currentUser={user} 
-              onNewBookingClick={() => setActiveTab('doctors')} 
-              onNavigate={setActiveTab}
+            <AppointmentsDirectory
+              currentUser={user}
+              onNewBookingClick={() => handleNavClick('doctors')}
+              onNavigate={handleNavClick}
             />
           ) : (
             <div className="citycare-outer-frame" style={{ padding: '60px 24px', textAlign: 'center' }}>
@@ -435,7 +530,7 @@ export default function App() {
                   <button
                     type="button"
                     className="btn-guest-primary"
-                    onClick={() => setActiveTab('staff')}
+                    onClick={() => handleNavClick('staff')}
                   >
                     <User size={15} />
                     <span>Sign In / Register</span>
@@ -443,7 +538,7 @@ export default function App() {
                   <button
                     type="button"
                     className="action-pill-btn"
-                    onClick={() => setActiveTab('doctors')}
+                    onClick={() => handleNavClick('doctors')}
                   >
                     <Calendar size={15} />
                     <span>Browse Doctors</span>
@@ -456,10 +551,10 @@ export default function App() {
 
         {/* DOCTORS TAB */}
         {activeTab === 'doctors' && (
-          <DoctorsPage 
-            currentUser={user} 
-            onAppointmentCreated={handleAppointmentCreated} 
-            onNavigate={setActiveTab} 
+          <DoctorsPage
+            currentUser={user}
+            onAppointmentCreated={handleAppointmentCreated}
+            onNavigate={handleNavClick}
           />
         )}
 
@@ -468,27 +563,13 @@ export default function App() {
         {activeTab === 'staff' && (
           user ? (
             <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '0 20px' }}>
-              <DashboardPreview user={user} onLogout={handleLogout} onNavigate={setActiveTab} />
+              <DashboardPreview user={user} onLogout={handleLogout} onNavigate={handleNavClick} />
             </div>
           ) : (
-            <div className="citycare-auth-wrapper">
-              <div className="citycare-auth-card">
-                <div className="citycare-auth-brand">
-                  <div className="citycare-brand-logo-mark" style={{ width: '44px', height: '44px' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-                      <path d="M12 7V17M7 12H17" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>CityCare Access Portal</h2>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Patients &bull; Clinicians &bull; Hospital Administration</p>
-                  </div>
-                </div>
-
-                <LoginCard onLoginSuccess={handleLoginSuccess} />
-              </div>
-            </div>
+            <CreativeAuthPortal
+              onLoginSuccess={handleLoginSuccess}
+              onNavigate={handleNavClick}
+            />
           )
         )}
       </main>
@@ -496,7 +577,7 @@ export default function App() {
       {/* 3. MODALS */}
       {/* Front-Desk Verification & Check-In Modal */}
       {isVerifyModalOpen && (
-        <StaffVerifyPatientModal 
+        <StaffVerifyPatientModal
           isOpen={isVerifyModalOpen}
           currentUser={user}
           onClose={() => setIsVerifyModalOpen(false)}

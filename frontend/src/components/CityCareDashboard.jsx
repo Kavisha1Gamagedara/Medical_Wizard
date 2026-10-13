@@ -33,6 +33,9 @@ import {
 import { appointmentService, doctorService, userService, authService } from '../services/api';
 import citycareHeroBg from '../assets/citycare_hero_bg.jpg';
 import AdminUsersManager from './AdminUsersManager';
+import AboutUsSection from './AboutUsSection';
+import FAQSection from './FAQSection';
+import LandingFooter from './LandingFooter';
 import AppointmentsDirectory from './AppointmentsDirectory';
 import PatientsDirectory from './PatientsDirectory';
 import AdminRegisterUserModal from './AdminRegisterUserModal';
@@ -49,7 +52,6 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
   const [adminSection, setAdminSection] = useState('overview'); // 'overview' | 'users' | 'appointments' | 'patients'
   const [chartViewMode, setChartViewMode] = useState('weekly'); // 'weekly' | 'status'
   const [hoveredDay, setHoveredDay] = useState('Tue');
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [loadingRealData, setLoadingRealData] = useState(false);
@@ -230,9 +232,9 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
   // =========================================================================
   if (isGuest) {
     return (
-      <div className="citycare-outer-frame">
+      <div className="citycare-outer-frame" id="home-landing-view">
         {/* Guest Public Welcome Header Card */}
-        <div className="citycare-guest-hero-card">
+        <div className="citycare-guest-hero-card" id="home-hero">
           <div className="citycare-hero-bg-art">
             <img src={citycareHeroBg} alt="Clinical Architecture" />
           </div>
@@ -341,6 +343,15 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
             ))}
           </div>
         </div>
+
+        {/* About Us Section */}
+        <AboutUsSection onNavigate={onNavigate} />
+
+        {/* Frequently Asked Questions (FAQ) Section */}
+        <FAQSection onNavigate={onNavigate} />
+
+        {/* Global Hospital Landing Footer */}
+        <LandingFooter onNavigate={onNavigate} />
       </div>
     );
   }
@@ -1038,176 +1049,191 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
             </div>
           </div>
 
-          {/* BOTTOM OPERATIONAL CONSOLE */}
-          <div className={`citycare-bottom-drawer ${isDrawerOpen ? 'open' : 'minimized'}`}>
-            <div 
-              className="citycare-drawer-notch" 
-              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              title={isDrawerOpen ? 'Collapse operational drawer' : 'Expand operational drawer'}
-            >
-              {isDrawerOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          {/* ========================================================= */}
+          {/* INTEGRATED CLINICAL OPERATIONS & TELEMETRY SECTION         */}
+          {/* ========================================================= */}
+          <div className="citycare-operations-grid">
+            {/* COLUMN 1: RECENT APPOINTMENTS STREAM */}
+            <div className="operations-card">
+              <div className="operations-card-header">
+                <div className="operations-header-title">
+                  <div className="mini-icon-circle blue">
+                    <Calendar size={15} color="#0284c7" />
+                  </div>
+                  <div>
+                    <h4>Recent Consultations</h4>
+                    <p>Live patient bookings &amp; arrival pass status</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="operations-link-btn"
+                  onClick={() => setAdminSection('appointments')}
+                >
+                  View All &rarr;
+                </button>
+              </div>
+
+              <div className="operations-stream-list">
+                {recentAppointments.length === 0 ? (
+                  <div className="operations-empty-state">
+                    <p>No appointments currently scheduled.</p>
+                    <button
+                      type="button"
+                      className="btn-book-slot-small"
+                      onClick={() => onNavigate && onNavigate('doctors')}
+                    >
+                      Book First Consultation
+                    </button>
+                  </div>
+                ) : (
+                  recentAppointments.slice(0, 5).map((apt) => (
+                    <div key={apt.id} className="operations-stream-item">
+                      <div className="operations-item-left">
+                        <div className="operations-avatar blue">
+                          {apt.patient_name ? apt.patient_name.charAt(0).toUpperCase() : 'P'}
+                        </div>
+                        <div>
+                          <strong className="operations-patient-name">{apt.patient_name}</strong>
+                          <span className="operations-doctor-name">with {apt.doctor}</span>
+                          <small className="operations-time-label">
+                            {new Date(apt.appointment_datetime).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(apt.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </small>
+                        </div>
+                      </div>
+
+                      <div className="operations-item-right">
+                        <span className={`status-badge-pill ${apt.status?.toLowerCase().replace(' ', '')}`}>
+                          {apt.status}
+                        </span>
+                        {apt.verification_code && (
+                          <span className="stream-code-badge" title="Express Arrival Code">
+                            <QrCode size={11} />
+                            {apt.verification_code}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            {isDrawerOpen && (
-              <div className="citycare-drawer-grid">
-                {/* COLUMN 1: RECENT APPOINTMENTS STREAM */}
-                <div className="citycare-symptoms-section" style={{ minWidth: '320px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Calendar size={15} color="#38bdf8" />
-                      Recent Practice Bookings
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSection('appointments')}
-                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      View All &rarr;
-                    </button>
+            {/* COLUMN 2: ACTIVE CLINICIANS ON DUTY */}
+            <div className="operations-card">
+              <div className="operations-card-header">
+                <div className="operations-header-title">
+                  <div className="mini-icon-circle green">
+                    <Stethoscope size={15} color="#10b981" />
                   </div>
-
-                  <div className="citycare-live-stream-list">
-                    {recentAppointments.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-                        No appointments currently scheduled.
-                      </div>
-                    ) : (
-                      recentAppointments.map((apt) => (
-                        <div key={apt.id} className="citycare-live-stream-item">
-                          <div className="stream-left">
-                            <div className="stream-avatar">
-                              {apt.patient_name ? apt.patient_name.charAt(0).toUpperCase() : 'P'}
-                            </div>
-                            <div>
-                              <strong className="stream-patient-name">{apt.patient_name}</strong>
-                              <span className="stream-doctor-name">with {apt.doctor}</span>
-                              <small className="stream-time">
-                                {new Date(apt.appointment_datetime).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(apt.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </small>
-                            </div>
-                          </div>
-
-                          <div className="stream-right">
-                            <span className={`status-badge-pill ${apt.status?.toLowerCase().replace(' ', '')}`}>
-                              {apt.status}
-                            </span>
-                            {apt.verification_code && (
-                              <span className="stream-code-badge" title="Arrival Verification Pass Code">
-                                {apt.verification_code}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                  <div>
+                    <h4>Specialists on Duty</h4>
+                    <p>{doctorsList.length || stats.dutyDoctors} verified medical specialists</p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="operations-link-btn green"
+                  onClick={() => onNavigate && onNavigate('doctors')}
+                >
+                  Browse Doctors &rarr;
+                </button>
+              </div>
 
-                {/* COLUMN 2: CLINICIANS ROSTER */}
-                <div className="citycare-dept-section" style={{ minWidth: '300px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Stethoscope size={15} color="#10b981" />
-                      Active Clinicians &amp; Specialties ({doctorsList.length || stats.dutyDoctors})
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => onNavigate && onNavigate('doctors')}
-                      style={{ background: 'none', border: 'none', color: '#34d399', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      Browse &rarr;
-                    </button>
+              <div className="operations-stream-list">
+                {doctorsList.length === 0 ? (
+                  <div className="operations-empty-state">
+                    <p>Loading practicing specialists roster...</p>
                   </div>
-
-                  <div className="citycare-live-stream-list">
-                    {doctorsList.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-                        Loading doctor roster...
-                      </div>
-                    ) : (
-                      doctorsList.map((doc) => (
-                        <div key={doc.id} className="citycare-live-stream-item">
-                          <div className="stream-left">
-                            <div className="stream-avatar" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
-                              🩺
-                            </div>
-                            <div>
-                              <strong className="stream-patient-name">{doc.full_name || doc.username}</strong>
-                              <span className="stream-doctor-name" style={{ color: '#38bdf8' }}>
-                                {doc.specialization || 'General Practitioner'}
-                              </span>
-                              <small className="stream-time">{doc.phone_number || doc.email}</small>
-                            </div>
-                          </div>
-
-                          <div className="stream-right">
-                            <span className="duty-status-pill">
-                              <span className="dot" /> On Duty
-                            </span>
-                          </div>
+                ) : (
+                  doctorsList.slice(0, 5).map((doc) => (
+                    <div key={doc.id} className="operations-stream-item">
+                      <div className="operations-item-left">
+                        <div className="operations-avatar green">
+                          🩺
                         </div>
-                      ))
-                    )}
+                        <div>
+                          <strong className="operations-patient-name">{doc.full_name || doc.username}</strong>
+                          <span className="operations-doctor-spec">
+                            {doc.specialization || 'Clinical Specialist'}
+                          </span>
+                          <small className="operations-time-label">{doc.phone_number || doc.email}</small>
+                        </div>
+                      </div>
+
+                      <div className="operations-item-right">
+                        <span className="duty-status-pill green">
+                          <span className="dot" /> On Duty
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* COLUMN 3: PRACTICE GOVERNANCE & QUICK ACTIONS */}
+            <div className="operations-card">
+              <div className="operations-card-header">
+                <div className="operations-header-title">
+                  <div className="mini-icon-circle purple">
+                    <ShieldCheck size={15} color="#7c3aed" />
                   </div>
-                </div>
-
-                {/* COLUMN 3: PRACTICE AUTHORITY & QUICK ACTIONS */}
-                <div className="citycare-alerts-section" style={{ minWidth: '280px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ShieldCheck size={15} color="#f59e0b" />
-                    Practice Authority &amp; Actions
-                  </h4>
-
-                  <div className="practice-authority-box">
-                    <div className="auth-stat-row">
-                      <span>Administrator Access:</span>
-                      <strong>{adminsCount} active account</strong>
-                    </div>
-                    <div className="auth-stat-row">
-                      <span>Duty Clinicians:</span>
-                      <strong>{doctorsCount} active</strong>
-                    </div>
-                    <div className="auth-stat-row">
-                      <span>Practice Reception Staff:</span>
-                      <strong>{staffCount} active</strong>
-                    </div>
-                    <div className="auth-stat-row">
-                      <span>Registered Patients:</span>
-                      <strong>{patientsCount} in portal</strong>
-                    </div>
-                  </div>
-
-                  <div className="practice-action-buttons-col">
-                    <button
-                      type="button"
-                      className="btn-console-action primary"
-                      onClick={() => setIsRegisterModalOpen(true)}
-                    >
-                      <UserPlus size={14} />
-                      <span>+ Register Doctor / Staff</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-console-action"
-                      onClick={() => setIsVerifyModalOpen(true)}
-                    >
-                      <QrCode size={14} />
-                      <span>Verify Arriving Patient Pass</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-console-action"
-                      onClick={() => setAdminSection('users')}
-                    >
-                      <Users size={14} />
-                      <span>Manage Role Permissions (RBAC)</span>
-                    </button>
+                  <div>
+                    <h4>Practice Authority</h4>
+                    <p>Administrative governance &amp; RBAC</p>
                   </div>
                 </div>
               </div>
-            )}
+
+              <div className="operations-authority-box">
+                <div className="auth-stat-row">
+                  <span>Administrators:</span>
+                  <strong>{adminsCount} active account</strong>
+                </div>
+                <div className="auth-stat-row">
+                  <span>Consultant Clinicians:</span>
+                  <strong>{doctorsCount} active</strong>
+                </div>
+                <div className="auth-stat-row">
+                  <span>Practice Reception:</span>
+                  <strong>{staffCount} on duty</strong>
+                </div>
+                <div className="auth-stat-row">
+                  <span>Registered Patients:</span>
+                  <strong>{patientsCount} in directory</strong>
+                </div>
+              </div>
+
+              <div className="operations-actions-stack">
+                <button
+                  type="button"
+                  className="btn-op-action primary"
+                  onClick={() => setIsRegisterModalOpen(true)}
+                >
+                  <UserPlus size={15} />
+                  <span>+ Register Doctor / Staff</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-op-action secondary"
+                  onClick={() => setIsVerifyModalOpen(true)}
+                >
+                  <QrCode size={15} />
+                  <span>Verify Arriving Patient Pass</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-op-action outline"
+                  onClick={() => setAdminSection('users')}
+                >
+                  <Users size={15} />
+                  <span>Manage Role Permissions (RBAC)</span>
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
