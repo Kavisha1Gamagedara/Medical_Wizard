@@ -15,17 +15,20 @@ import {
   Phone,
   FileText,
   Sparkles,
-  Clock
+  Clock,
+  QrCode
 } from 'lucide-react';
 import { authService } from '../services/api';
 import ProfileEditModal from './ProfileEditModal';
 import AdminUsersManager from './AdminUsersManager';
 import DoctorAvailabilityModal from './DoctorAvailabilityModal';
+import StaffVerifyPatientModal from './StaffVerifyPatientModal';
 
 export default function DashboardPreview({ user, onLogout, onNavigate }) {
   const [currentUser, setCurrentUser] = useState(user);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   const isAdmin = currentUser.role === 'admin';
   const isDoctor = currentUser.role === 'doctor';
@@ -184,6 +187,28 @@ export default function DashboardPreview({ user, onLogout, onNavigate }) {
               >
                 <Clock size={15} />
                 <span>My Availability &amp; Capacity</span>
+              </button>
+            )}
+            {(isAdmin || currentUser.role === 'staff') && (
+              <button
+                type="button"
+                className="btn-submit"
+                style={{
+                  margin: 0,
+                  width: 'auto',
+                  padding: '10px 18px',
+                  fontSize: '0.86rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)'
+                }}
+                onClick={() => setIsVerifyModalOpen(true)}
+                id="btn-staff-verify-checkin"
+              >
+                <QrCode size={15} />
+                <span>Verify Patient Check-In</span>
               </button>
             )}
             <button
@@ -407,6 +432,16 @@ export default function DashboardPreview({ user, onLogout, onNavigate }) {
         currentUser={currentUser}
         isOpen={isAvailabilityModalOpen}
         onClose={() => setIsAvailabilityModalOpen(false)}
+      />
+
+      {/* Staff Patient Check-In & Code Verification Modal */}
+      <StaffVerifyPatientModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        onVerificationSuccess={() => {
+          if (onNavigate) onNavigate('appointments');
+        }}
+        currentStaff={currentUser}
       />
     </div>
   );

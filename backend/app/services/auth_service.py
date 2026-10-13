@@ -43,6 +43,9 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         hashed_password=hashed_pwd,
         full_name=user_in.full_name,
         role=user_in.role or "staff",
+        specialization=user_in.specialization,
+        phone_number=user_in.phone_number,
+        bio=user_in.bio,
         is_active=True,
     )
     db.add(db_user)

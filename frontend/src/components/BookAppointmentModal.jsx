@@ -10,9 +10,11 @@ import {
   CheckCircle2, 
   Sparkles,
   ArrowRight,
-  Lock
+  Lock,
+  QrCode
 } from 'lucide-react';
 import { appointmentService, doctorService } from '../services/api';
+import AppointmentReceiptModal from './AppointmentReceiptModal';
 
 const APPOINTMENT_TYPES = [
   'General Consultation',
@@ -60,6 +62,14 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     return parsed < (Date.now() - 30000);
   };
 
+  // Check if a specific slot on the selected date is in the past
+  const isSlotPast = (slotTime) => {
+    if (!selectedDateStr || !slotTime) return false;
+    const parsed = new Date(`${selectedDateStr}T${slotTime}`).getTime();
+    if (isNaN(parsed)) return false;
+    return parsed < Date.now();
+  };
+
   const formatTimeLabel = (timeStr) => {
     if (!timeStr) return '';
     const [h, m] = timeStr.split(':');
@@ -85,6 +95,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const [conflictWarning, setConflictWarning] = useState('');
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   // Doctor schedule & daily capacity state
   const [daySchedule, setDaySchedule] = useState(null);
@@ -125,6 +136,21 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     return () => { isMounted = false; };
   }, [selectedDateStr, doctorName]);
 
+  // When schedule loads, if selected time slot is in the past, automatically select the first upcoming available slot
+  useEffect(() => {
+    if (daySchedule?.time_slots?.length > 0 && daySchedule.is_available && !daySchedule.is_capacity_reached) {
+      if (isPastDateTime(appointmentDatetime)) {
+        const firstUpcoming = daySchedule.time_slots.find((s) => {
+          const slotTs = new Date(`${selectedDateStr}T${s.time}`).getTime();
+          return s.available && s.reason !== 'past' && slotTs > Date.now();
+        });
+        if (firstUpcoming) {
+          setAppointmentDatetime(`${selectedDateStr}T${firstUpcoming.time}`);
+        }
+      }
+    }
+  }, [daySchedule, selectedDateStr, appointmentDatetime]);
+
   // Reset form values on modal open or doctor change
   useEffect(() => {
     if (isOpen) {
@@ -162,7 +188,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
         const iso = new Date(appointmentDatetime).toISOString();
         const res = await appointmentService.checkAvailability(doctorName, iso);
         if (!res.available) {
-          setConflictWarning(res.message);
+          const doc = res.conflict_doctor || doctorName;
+          setConflictWarning(`${doc} already has an appointment scheduled for the selected time`);
         } else {
           setConflictWarning('');
         }
@@ -201,7 +228,15 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     }
 
     if (isPastDateTime(appointmentDatetime)) {
-      setErrorMsg('Invalid Appointment Time: Appointments cannot be scheduled for a past date or time. Please select an upcoming date and time.');
+      const firstUpcoming = daySchedule?.time_slots?.find((s) => {
+        const slotTs = new Date(`${selectedDateStr}T${s.time}`).getTime();
+        return s.available && s.reason !== 'past' && slotTs > Date.now();
+      });
+      if (firstUpcoming) {
+        setAppointmentDatetime(`${selectedDateStr}T${firstUpcoming.time}`);
+        return;
+      }
+      setErrorMsg('No upcoming consultation slots remaining for this date. Please select another upcoming date.');
       return;
     }
 
@@ -238,7 +273,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
         onBookingSuccess(result);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Unable to book appointment. Please try again.');
+      const msg = err.message || '';
+      if (err.status === 409 || msg.includes('Conflict') || msg.includes('already has')) {
+        setErrorMsg(`${doctorName} already has an appointment scheduled for the selected time`);
+      } else {
+        setErrorMsg(msg || 'Unable to book appointment. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -246,6 +286,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
   const handleSelectSlot = (time24) => {
     if (!selectedDateStr) return;
+    if (isSlotPast(time24)) return; // Past slots are completely not clickable
     setAppointmentDatetime(`${selectedDateStr}T${time24}`);
     setErrorMsg('');
   };
@@ -333,6 +374,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   {new Date(bookingConfirmed.appointment_datetime).toLocaleString()}
                 </span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Check-in Code</span>
+                <span style={{ fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.08em' }}>
+                  {bookingConfirmed.verification_code || `#APT-${bookingConfirmed.id}`}
+                </span>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Status</span>
                 <span style={{ 
@@ -348,14 +395,34 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               </div>
             </div>
 
-            <button 
-              type="button" 
-              className="btn-submit" 
-              onClick={handleClose}
-              style={{ width: '100%' }}
-            >
-              Done & Return
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button 
+                type="button" 
+                className="btn-submit" 
+                onClick={() => setShowReceiptModal(true)}
+                style={{ 
+                  flex: 1.2, 
+                  margin: 0,
+                  background: 'linear-gradient(135deg, #06b6d4, #0d9488)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)'
+                }}
+              >
+                <QrCode size={16} />
+                <span>View Receipt &amp; QR Pass</span>
+              </button>
+              <button 
+                type="button" 
+                className="btn-cancel" 
+                onClick={handleClose}
+                style={{ flex: 1 }}
+              >
+                Done &amp; Return
+              </button>
+            </div>
           </div>
         ) : (
           /* Booking Form */
@@ -491,38 +558,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     setAppointmentDatetime(e.target.value);
                     if (errorMsg) setErrorMsg('');
                   }}
-                  style={{ 
-                    colorScheme: 'dark',
-                    borderColor: isPastSelected ? 'rgba(239, 68, 68, 0.75)' : undefined,
-                    boxShadow: isPastSelected ? '0 0 0 2px rgba(239, 68, 68, 0.25)' : undefined,
-                  }}
+                  style={{ colorScheme: 'dark' }}
                   required
                 />
                 <Clock size={18} className="input-icon" />
               </div>
-
-              {/* Past Date & Time Validation Alert */}
-              {isPastSelected && (
-                <div 
-                  id="past-datetime-warning"
-                  className="alert-box alert-danger" 
-                  style={{ 
-                    marginTop: '8px', 
-                    padding: '10px 14px', 
-                    fontSize: '0.82rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    border: '1px solid rgba(239, 68, 68, 0.45)',
-                    background: 'rgba(239, 68, 68, 0.12)'
-                  }}
-                >
-                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
-                  <span style={{ color: '#fca5a5', fontWeight: 600 }}>
-                    Past Date Warning: An appointment cannot be booked for a past date or time. Please select an upcoming slot.
-                  </span>
-                </div>
-              )}
 
               {/* Doctor Working Hours & Daily Appointment Capacity Widget */}
               {daySchedule && (
@@ -591,35 +631,45 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '2px' }}>
                         {daySchedule.time_slots.map((slot) => {
-                          const isSelected = appointmentDatetime === `${selectedDateStr}T${slot.time}`;
+                          const isPast = isSlotPast(slot.time) || slot.reason === 'past';
+                          const isClickable = slot.available && !isPast;
+                          const isSelected = !isPast && appointmentDatetime === `${selectedDateStr}T${slot.time}`;
                           return (
                             <button
                               key={slot.time}
                               type="button"
-                              disabled={!slot.available}
-                              onClick={() => handleSelectSlot(slot.time)}
+                              disabled={!isClickable}
+                              onClick={isClickable ? () => handleSelectSlot(slot.time) : undefined}
                               style={{
-                                padding: '5px 9px',
+                                padding: '6px 11px',
                                 fontSize: '0.74rem',
                                 borderRadius: '6px',
                                 border: isSelected 
                                   ? '1px solid var(--primary)' 
-                                  : (slot.available ? '1px solid var(--border-subtle)' : '1px solid rgba(255,255,255,0.06)'),
+                                  : (isClickable ? '1px solid var(--border-subtle)' : '1px solid rgba(255,255,255,0.05)'),
                                 background: isSelected 
                                   ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(13, 148, 136, 0.45))' 
-                                  : (slot.available ? 'var(--bg-surface)' : 'rgba(0,0,0,0.25)'),
+                                  : (isClickable ? 'var(--bg-surface)' : 'rgba(255, 255, 255, 0.02)'),
                                 color: isSelected 
                                   ? '#fff' 
-                                  : (slot.available ? 'var(--text-primary)' : 'var(--text-muted)'),
-                                cursor: slot.available ? 'pointer' : 'not-allowed',
-                                opacity: slot.available ? 1 : 0.45,
+                                  : (isClickable ? 'var(--text-primary)' : 'rgba(148, 163, 184, 0.3)'),
+                                cursor: isClickable ? 'pointer' : 'not-allowed',
+                                opacity: isClickable ? 1 : 0.32,
+                                pointerEvents: isClickable ? 'auto' : 'none',
                                 fontWeight: isSelected ? 700 : 500,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                textDecoration: slot.reason === 'booked' ? 'line-through' : 'none'
+                                textDecoration: slot.reason === 'booked' ? 'line-through' : 'none',
+                                userSelect: 'none'
                               }}
-                              title={slot.reason === 'booked' ? 'Slot already booked' : (slot.reason === 'past' ? 'Past time' : `Book consultation at ${slot.label}`)}
+                              title={
+                                isPast 
+                                  ? 'Time slot unavailable' 
+                                  : slot.reason === 'booked' 
+                                  ? 'Slot already booked' 
+                                  : `Select consultation at ${slot.label}`
+                              }
                             >
                               {slot.label}
                               {isSelected && <CheckCircle2 size={12} color="var(--emerald-accent)" />}
@@ -635,20 +685,20 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 </div>
               )}
               
-              {checkingAvailability && !isPastSelected && (
+              {checkingAvailability && (
                 <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
                   Checking doctor schedule availability...
                 </small>
               )}
 
-              {conflictWarning && !isPastSelected && (
+              {conflictWarning && (
                 <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertCircle size={16} />
                   <span>{conflictWarning}</span>
                 </div>
               )}
 
-              {!conflictWarning && !checkingAvailability && !isPastSelected && appointmentDatetime && (
+              {!conflictWarning && !checkingAvailability && appointmentDatetime && !isPastSelected && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
                   <CheckCircle2 size={14} />
                   <span>Schedule verified: No collisions for {doctorName} at this time.</span>
@@ -712,7 +762,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     ? 'Sign in required: Only logged-in patients and authorized staff can book appointments' 
                     : (isDoctor 
                         ? 'Clinician notice: Doctor accounts cannot book appointments' 
-                        : (isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined))
+                        : (conflictWarning 
+                            ? conflictWarning 
+                            : (isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined)))
                 }
               >
                 {loading ? (
@@ -731,6 +783,18 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
           </form>
         )}
       </div>
+
+      {/* Official Receipt & QR Pass Modal */}
+      {bookingConfirmed && (
+        <AppointmentReceiptModal
+          appointment={bookingConfirmed}
+          isOpen={showReceiptModal}
+          onClose={() => {
+            setShowReceiptModal(false);
+            handleClose();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -425,3 +425,75 @@ def test_appointment_visibility_rbac_matrix(client):
     # Jane cannot snoop on John's appointments by ID
     assert client.get(f"/api/v1/appointments/{apt_1_id}", headers=headers_jane).status_code == status.HTTP_403_FORBIDDEN
 
+
+def test_admin_register_staff_and_doctors(client):
+    """
+    Test that an administrator can directly register staff and doctors via POST /api/v1/users.
+    - Admin registering staff succeeds (201).
+    - Admin registering doctor with specialization succeeds (201).
+    - Registered doctor is queryable in /api/v1/doctors.
+    - Staff/Doctor/Patient attempting POST /api/v1/users receives 403 Forbidden.
+    - Unauthenticated visitor receives 401 Unauthorized.
+    """
+    # 1. Setup admin
+    register_user(client, "admin_recruiter", "recruiter@clinic.com", "AdminPass123!", role="admin")
+    admin_token = get_auth_token(client, "admin_recruiter", "AdminPass123!")
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
+
+    # 2. Admin registers a new staff member
+    staff_payload = {
+        "username": "nurse_clara",
+        "email": "clara@clinic.com",
+        "password": "StaffPassword123!",
+        "full_name": "Nurse Clara Barton",
+        "role": "staff",
+        "phone_number": "+61 2 9111 2222",
+    }
+    res_staff = client.post("/api/v1/users", json=staff_payload, headers=headers_admin)
+    assert res_staff.status_code == status.HTTP_201_CREATED
+    staff_data = res_staff.json()
+    assert staff_data["username"] == "nurse_clara"
+    assert staff_data["role"] == "staff"
+    assert staff_data["full_name"] == "Nurse Clara Barton"
+
+    # 3. Admin registers a new doctor with specialization
+    doc_payload = {
+        "username": "dr_marcus",
+        "email": "marcus@clinic.com",
+        "password": "DoctorPassword123!",
+        "full_name": "Dr. Marcus Welby",
+        "role": "doctor",
+        "specialization": "Cardiologist",
+        "phone_number": "+61 2 9333 4444",
+        "bio": "Consultant Cardiologist with 15 years experience.",
+    }
+    res_doc = client.post("/api/v1/users", json=doc_payload, headers=headers_admin)
+    assert res_doc.status_code == status.HTTP_201_CREATED
+    doc_data = res_doc.json()
+    assert doc_data["username"] == "dr_marcus"
+    assert doc_data["role"] == "doctor"
+    assert doc_data["specialization"] == "Cardiologist"
+
+    # 4. Verify doctor appears in doctors directory
+    res_dir = client.get("/api/v1/doctors?specialization=Cardiologist")
+    assert res_dir.status_code == status.HTTP_200_OK
+    doc_names = [d["full_name"] for d in res_dir.json()]
+    assert "Dr. Marcus Welby" in doc_names
+
+    # 5. Non-admin (staff) cannot register users via /api/v1/users -> 403 Forbidden
+    staff_token = get_auth_token(client, "nurse_clara", "StaffPassword123!")
+    res_forbidden = client.post(
+        "/api/v1/users",
+        json={"username": "imposter", "email": "imposter@test.com", "password": "Password123!", "role": "staff"},
+        headers={"Authorization": f"Bearer {staff_token}"},
+    )
+    assert res_forbidden.status_code == status.HTTP_403_FORBIDDEN
+
+    # 6. Unauthenticated visitor receives 401 Unauthorized
+    res_anon = client.post(
+        "/api/v1/users",
+        json={"username": "anon", "email": "anon@test.com", "password": "Password123!", "role": "doctor"},
+    )
+    assert res_anon.status_code == status.HTTP_401_UNAUTHORIZED
+
+

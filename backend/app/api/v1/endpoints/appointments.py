@@ -10,6 +10,8 @@ from app.schemas.appointment import (
     AppointmentCreate,
     AppointmentUpdate,
     AppointmentResponse,
+    VerifyPatientRequest,
+    VerifyPatientResponse,
 )
 from app.services import appointment_service
 
@@ -183,6 +185,72 @@ def check_doctor_availability(
         "available": True,
         "message": f"{doctor} is available for booking at this time.",
     }
+
+
+@router.get("/verify/{verification_code}", response_model=AppointmentResponse)
+def lookup_appointment_verification(
+    verification_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Look up appointment details by random verification code.
+    Allowed for:
+    - Staff and Admins (can lookup any patient check-in code).
+    - Doctors (can lookup check-in code for their patients).
+    - Patients (can only lookup their own appointment code).
+    """
+    apt = appointment_service.get_appointment_by_verification_code(db=db, code=verification_code)
+    if not apt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Verification Failed: No appointment found with code '{verification_code}'.",
+        )
+
+    if current_user.role == "patient" and apt.patient_id is not None and apt.patient_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You do not have permission to view other patients' verification codes.",
+        )
+    elif current_user.role == "doctor" and not appointment_service.is_appointment_for_doctor(apt, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Doctors can only look up verification codes for their consultations.",
+        )
+
+    return apt
+
+
+@router.post("/verify", response_model=VerifyPatientResponse)
+def verify_patient_arrival(
+    payload: VerifyPatientRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Hospital Front-Desk Verification & Check-In:
+    - Reception Staff and Administrators can verify arriving patients using their appointment code.
+    - Updates appointment status to 'Checked In', marks is_verified=True, records verification timestamp and staff member.
+    - Clinicians (doctors) and patients cannot verify check-ins (403 Forbidden).
+    """
+    if current_user.role not in ["staff", "admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Only reception staff and administrators can verify arriving patients and complete check-in.",
+        )
+
+    verified_apt = appointment_service.verify_patient_checkin(
+        db=db,
+        code=payload.verification_code,
+        verified_by_user=current_user,
+        notes=payload.notes,
+    )
+
+    return VerifyPatientResponse(
+        success=True,
+        message=f"Patient {verified_apt.patient_name} verified and checked in successfully for {verified_apt.doctor}.",
+        appointment=verified_apt,
+    )
 
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)

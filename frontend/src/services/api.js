@@ -172,9 +172,30 @@ export const appointmentService = {
     if (excludeId) query.append('exclude_appointment_id', excludeId);
     return await apiRequest(`/api/v1/appointments/check-availability?${query.toString()}`);
   },
+
+  async lookupVerification(code) {
+    return await apiRequest(`/api/v1/appointments/verify/${encodeURIComponent(code)}`);
+  },
+
+  async verifyPatientArrival(code, notes = '') {
+    return await apiRequest('/api/v1/appointments/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        verification_code: code,
+        notes: notes || undefined,
+      }),
+    });
+  },
 };
 
 export const userService = {
+  async createUser(userData) {
+    return await apiRequest('/api/v1/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  },
+
   async getUsers(params = {}) {
     const query = new URLSearchParams();
     if (params.role && params.role !== 'all') query.append('role', params.role);

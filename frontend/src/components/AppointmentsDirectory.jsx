@@ -14,9 +14,12 @@ import {
   RefreshCw,
   Plus,
   Lock,
-  ArrowRight
+  ArrowRight,
+  QrCode
 } from 'lucide-react';
 import { appointmentService } from '../services/api';
+import AppointmentReceiptModal from './AppointmentReceiptModal';
+import StaffVerifyPatientModal from './StaffVerifyPatientModal';
 
 export default function AppointmentsDirectory({ onNewBookingClick, currentUser, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
@@ -44,6 +47,24 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
 
   // Delete State
   const [deletingId, setDeletingId] = useState(null);
+
+  // Verification & Receipt State
+  const [selectedReceiptApt, setSelectedReceiptApt] = useState(null);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [quickVerifyingId, setQuickVerifyingId] = useState(null);
+
+  const handleQuickCheckin = async (apt) => {
+    setQuickVerifyingId(apt.id);
+    try {
+      const code = apt.verification_code || `MW-${String(apt.id).padStart(6, '0')}`;
+      await appointmentService.verifyPatientArrival(code, 'Quick reception check-in');
+      await fetchAppointments();
+    } catch (err) {
+      alert(`Check-in failed: ${err.message}`);
+    } finally {
+      setQuickVerifyingId(null);
+    }
+  };
 
   const fetchAppointments = async () => {
     if (!currentUser) {
@@ -128,8 +149,14 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, isVerified = false) => {
     switch (status) {
+      case 'Checked In':
+        return (
+          <span className="status-badge" style={{ background: 'rgba(16, 185, 129, 0.18)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+            <CheckCircle size={12} /> Checked In
+          </span>
+        );
       case 'Completed':
         return <span className="status-badge completed"><CheckCircle size={12} /> Completed</span>;
       case 'Cancelled':
@@ -137,6 +164,13 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
       case 'No Show':
         return <span className="status-badge noshow"><AlertCircle size={12} /> No Show</span>;
       default:
+        if (isVerified) {
+          return (
+            <span className="status-badge" style={{ background: 'rgba(16, 185, 129, 0.18)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+              <CheckCircle size={12} /> Checked In
+            </span>
+          );
+        }
         return <span className="status-badge scheduled"><Clock size={12} /> Scheduled</span>;
     }
   };
@@ -203,15 +237,42 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           <p>View, filter, edit status, or manage scheduled patient consultations.</p>
         </div>
 
-        <button 
-          type="button" 
-          className="btn-submit" 
-          style={{ width: 'auto', padding: '10px 20px', margin: 0 }}
-          onClick={onNewBookingClick}
-        >
-          <Plus size={16} />
-          <span>Book New Appointment</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {(isAdmin || isStaff) && (
+            <button
+              type="button"
+              className="btn-submit"
+              style={{
+                width: 'auto',
+                padding: '10px 18px',
+                margin: 0,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)'
+              }}
+              onClick={() => setIsVerifyModalOpen(true)}
+              id="btn-verify-patient-checkin"
+            >
+              <QrCode size={16} />
+              <span>Verify Patient Check-In</span>
+            </button>
+          )}
+
+          {!isDoctor && (
+            <button 
+              type="button" 
+              className="btn-submit" 
+              style={{ width: 'auto', padding: '10px 20px', margin: 0 }}
+              onClick={onNewBookingClick}
+              id="btn-book-new-appointment"
+            >
+              <Plus size={16} />
+              <span>Book New Appointment</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Stats Cards */}
@@ -223,6 +284,10 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
         <div className="kpi-card" style={{ borderColor: 'rgba(6, 182, 212, 0.3)' }}>
           <span className="kpi-label" style={{ color: '#38bdf8' }}>Scheduled</span>
           <div className="kpi-value" style={{ color: '#38bdf8' }}>{stats.scheduled}</div>
+        </div>
+        <div className="kpi-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+          <span className="kpi-label" style={{ color: '#34d399' }}>Checked In</span>
+          <div className="kpi-value" style={{ color: '#34d399' }}>{stats.checked_in || 0}</div>
         </div>
         <div className="kpi-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
           <span className="kpi-label" style={{ color: '#34d399' }}>Completed</span>
@@ -363,6 +428,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           >
             <option value="all">All Statuses</option>
             <option value="Scheduled">Scheduled</option>
+            <option value="Checked In">Checked In</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
             <option value="No Show">No Show</option>
@@ -418,7 +484,27 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
             <tbody>
               {appointments.map((apt) => (
                 <tr key={apt.id}>
-                  <td style={{ fontWeight: '700', color: 'var(--text-accent)' }}>#{apt.id}</td>
+                  <td style={{ fontWeight: '700', color: 'var(--text-accent)' }}>
+                    <div>#{apt.id}</div>
+                    {apt.verification_code && (
+                      <div 
+                        style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '0.72rem', 
+                          color: '#38bdf8', 
+                          letterSpacing: '0.05em',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          marginTop: '3px',
+                          display: 'inline-block'
+                        }}
+                        title={`Patient Verification Code: ${apt.verification_code}`}
+                      >
+                        {apt.verification_code}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <User size={15} color="var(--primary)" />
@@ -455,7 +541,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                   <td>
                     <span className="type-badge">{apt.appointment_type}</span>
                   </td>
-                  <td>{getStatusBadge(apt.status)}</td>
+                  <td>{getStatusBadge(apt.status, apt.is_verified)}</td>
                   <td style={{ maxWidth: '200px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                     {apt.notes ? (
                       <span title={apt.notes} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -466,7 +552,36 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      {/* View Receipt & QR Pass Button */}
+                      <button
+                        type="button"
+                        className="btn-action-icon"
+                        onClick={() => setSelectedReceiptApt(apt)}
+                        title="View Receipt & QR Check-in Pass"
+                        style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                      >
+                        <QrCode size={14} />
+                      </button>
+
+                      {/* Quick Front Desk Check-in Button for Staff/Admin */}
+                      {(isAdmin || isStaff) && apt.status === 'Scheduled' && (
+                        <button
+                          type="button"
+                          className="btn-action-icon"
+                          onClick={() => handleQuickCheckin(apt)}
+                          disabled={quickVerifyingId === apt.id}
+                          title="Verify Patient Arrival (Check-In)"
+                          style={{ 
+                            color: 'var(--emerald-accent)', 
+                            borderColor: 'rgba(16, 185, 129, 0.4)', 
+                            background: 'rgba(16, 185, 129, 0.1)' 
+                          }}
+                        >
+                          <CheckCircle size={14} />
+                        </button>
+                      )}
+
                       {/* Edit Button - Patients can only edit/cancel their own appointment */}
                       {(isAdmin || isStaff || isDoctor || (isPatient && apt.patient_id === currentUser?.id) || !currentUser) && (
                         <button
@@ -535,6 +650,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                   disabled={isPatient && editingApt.status === 'Cancelled'}
                 >
                   {!isPatient && <option value="Scheduled">Scheduled</option>}
+                  {!isPatient && <option value="Checked In">Checked In</option>}
                   {!isPatient && <option value="Completed">Completed</option>}
                   <option value="Cancelled">Cancelled</option>
                   {!isPatient && <option value="No Show">No Show</option>}
@@ -573,6 +689,24 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           </div>
         </div>
       )}
+      {/* Appointment Receipt & QR Modal */}
+      {selectedReceiptApt && (
+        <AppointmentReceiptModal
+          appointment={selectedReceiptApt}
+          isOpen={Boolean(selectedReceiptApt)}
+          onClose={() => setSelectedReceiptApt(null)}
+        />
+      )}
+
+      {/* Staff Patient Check-In & Code Verification Modal */}
+      <StaffVerifyPatientModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        onVerificationSuccess={() => {
+          fetchAppointments();
+        }}
+        currentStaff={currentUser}
+      />
     </div>
   );
 }

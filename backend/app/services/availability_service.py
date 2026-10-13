@@ -180,16 +180,24 @@ def get_doctor_day_schedule(
     current_slot_dt = datetime.combine(target_date, t_start)
     end_dt = datetime.combine(target_date, t_end)
 
-    # Reference now in UTC naive
-    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    # Reference current machine local time
+    now_local = datetime.now()
+    today_local = now_local.date()
 
     slots: List[SlotInfo] = []
     while current_slot_dt < end_dt:
         time_24 = current_slot_dt.strftime("%H:%M")
         time_label = current_slot_dt.strftime("%I:%M %p")
 
-        # 1. Past check
-        if current_slot_dt < (now_utc_naive - timedelta(minutes=2)):
+        # 1. Past slot check
+        if target_date < today_local:
+            is_past_slot = True
+        elif target_date > today_local:
+            is_past_slot = False
+        else:
+            is_past_slot = current_slot_dt.time() <= now_local.time()
+
+        if is_past_slot:
             slots.append(SlotInfo(time=time_24, label=time_label, available=False, reason="past"))
         else:
             # 2. Collision check with booked appointments

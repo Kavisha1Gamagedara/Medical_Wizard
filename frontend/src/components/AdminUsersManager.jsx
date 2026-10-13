@@ -8,9 +8,11 @@ import {
   XCircle, 
   Stethoscope, 
   UserCheck, 
-  AlertCircle 
+  AlertCircle,
+  UserPlus
 } from 'lucide-react';
 import { userService } from '../services/api';
+import AdminRegisterUserModal from './AdminRegisterUserModal';
 
 export default function AdminUsersManager({ currentAdmin }) {
   const [users, setUsers] = useState([]);
@@ -21,6 +23,7 @@ export default function AdminUsersManager({ currentAdmin }) {
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -89,6 +92,12 @@ export default function AdminUsersManager({ currentAdmin }) {
     }
   };
 
+  const handleUserCreated = (newUser) => {
+    setSuccessMsg(`Successfully registered new ${newUser.role} account: @${newUser.username} (${newUser.full_name || newUser.username}).`);
+    fetchUsers();
+    setTimeout(() => setSuccessMsg(''), 5000);
+  };
+
   return (
     <div style={{
       background: 'var(--bg-surface)',
@@ -104,20 +113,43 @@ export default function AdminUsersManager({ currentAdmin }) {
             Administrator RBAC User Directory
           </h3>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            System-wide user authority management. Reassign clinical roles or toggle access permissions.
+            System-wide user authority management. Register staff and doctors, reassign roles, or toggle access.
           </p>
         </div>
 
-        <button
-          type="button"
-          className="btn-cancel"
-          style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-          onClick={fetchUsers}
-          title="Refresh user list"
-        >
-          <RefreshCw size={14} />
-          <span>Refresh Users</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn-submit"
+            style={{ 
+              width: 'auto', 
+              padding: '8px 16px', 
+              fontSize: '0.82rem', 
+              margin: 0,
+              background: 'linear-gradient(135deg, #06b6d4, #0d9488)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(6, 182, 212, 0.25)'
+            }}
+            onClick={() => setIsRegisterModalOpen(true)}
+            id="btn-admin-open-register"
+          >
+            <UserPlus size={15} />
+            <span>Register Staff / Doctor</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-cancel"
+            style={{ padding: '8px 14px', fontSize: '0.8rem', margin: 0 }}
+            onClick={fetchUsers}
+            title="Refresh user list"
+          >
+            <RefreshCw size={14} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {successMsg && (
@@ -260,6 +292,13 @@ export default function AdminUsersManager({ currentAdmin }) {
           </table>
         )}
       </div>
+
+      {/* Admin Register User Modal */}
+      <AdminRegisterUserModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        onUserCreated={handleUserCreated}
+      />
     </div>
   );
 }

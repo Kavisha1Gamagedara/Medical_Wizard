@@ -6,9 +6,23 @@ from sqlalchemy import or_
 from app.core.database import get_db
 from app.api.deps import require_admin
 from app.models.user import User
-from app.schemas.user import UserResponse
+from app.schemas.user import UserCreate, UserResponse
+from app.services.auth_service import create_user
 
 router = APIRouter(prefix="/users", tags=["User Administration (Admin Only)"])
+
+
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def admin_register_user(
+    user_in: UserCreate,
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin),
+):
+    """
+    Onboard and register a new clinical user (Staff, Doctor, Admin, or Patient).
+    Restricted strictly to Administrator role.
+    """
+    return create_user(db=db, user_in=user_in)
 
 
 @router.get("", response_model=List[UserResponse])

@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -6,6 +7,34 @@ from fastapi import HTTPException, status
 
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
+
+
+def generate_unique_verification_code(db: Session) -> str:
+    """
+    Generates a unique, user-friendly 8-character verification code (MW-XXXXXX).
+    Excludes ambiguous alphanumeric characters (0, O, 1, I) to prevent reception entry confusion.
+    """
+    chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+    for _ in range(25):
+        code_body = "".join(secrets.choice(chars) for _ in range(6))
+        code = f"MW-{code_body}"
+        exists = db.query(Appointment).filter(Appointment.verification_code == code).first()
+        if not exists:
+            return code
+    return f"MW-{int(datetime.now().timestamp() * 1000) % 1000000:06d}"
+
+
+def normalize_verification_code(raw: str) -> str:
+    """
+    Normalizes a verification code input (e.g. '7k9a2f', 'mw-7k9a2f', 'MW 7K9A2F')
+    into standard 'MW-XXXXXX' format.
+    """
+    if not raw:
+        return ""
+    clean = raw.strip().upper().replace(" ", "").replace("-", "")
+    if clean.startswith("MW"):
+        clean = clean[2:]
+    return f"MW-{clean}" if clean else ""
 
 
 def normalize_to_utc_naive(dt: datetime) -> datetime:
@@ -173,6 +202,9 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
             ),
         )
 
+    # Generate unique random check-in verification code
+    v_code = generate_unique_verification_code(db)
+
     db_appointment = Appointment(
         patient_id=appointment_in.patient_id,
         patient_name=appointment_in.patient_name.strip(),
@@ -181,6 +213,8 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
         appointment_type=appointment_in.appointment_type.strip(),
         status=appointment_in.status or "Scheduled",
         notes=appointment_in.notes,
+        verification_code=v_code,
+        is_verified=False,
     )
     db.add(db_appointment)
     db.commit()
@@ -230,6 +264,7 @@ def list_appointments(
                 Appointment.patient_name.ilike(pattern),
                 Appointment.doctor.ilike(pattern),
                 Appointment.notes.ilike(pattern),
+                Appointment.verification_code.ilike(pattern),
             )
         )
 
@@ -239,12 +274,21 @@ def list_appointments(
     if appointment_type and appointment_type.lower() != "all":
         query = query.filter(Appointment.appointment_type.ilike(appointment_type.strip()))
 
-    return (
+    results = (
         query.order_by(Appointment.appointment_datetime.asc())
         .offset(skip)
         .limit(limit)
         .all()
     )
+
+    # Auto-backfill verification_code for any legacy records
+    for item in results:
+        if not item.verification_code:
+            item.verification_code = generate_unique_verification_code(db)
+            db.add(item)
+    db.commit()
+
+    return results
 
 
 def get_appointment_by_id(db: Session, appointment_id: int) -> Appointment:
@@ -254,6 +298,70 @@ def get_appointment_by_id(db: Session, appointment_id: int) -> Appointment:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Appointment with ID {appointment_id} was not found.",
         )
+    if not apt.verification_code:
+        apt.verification_code = generate_unique_verification_code(db)
+        db.add(apt)
+        db.commit()
+        db.refresh(apt)
+    return apt
+
+
+def get_appointment_by_verification_code(db: Session, code: str) -> Optional[Appointment]:
+    """
+    Looks up an appointment by its random verification code.
+    Supports raw input or normalized MW-XXXXXX prefix.
+    """
+    if not code:
+        return None
+    raw_clean = code.strip().upper()
+    norm_code = normalize_verification_code(code)
+
+    return db.query(Appointment).filter(
+        or_(
+            Appointment.verification_code.ilike(raw_clean),
+            Appointment.verification_code.ilike(norm_code),
+            Appointment.verification_code.ilike(f"%{raw_clean}%") if len(raw_clean) >= 4 else False,
+        )
+    ).first()
+
+
+def verify_patient_checkin(
+    db: Session,
+    code: str,
+    verified_by_user: Any,
+    notes: Optional[str] = None,
+) -> Appointment:
+    """
+    Verifies an arriving patient using their generated verification code.
+    Marks is_verified = True, updates status to 'Checked In', records timestamps and staff identifier.
+    """
+    apt = get_appointment_by_verification_code(db, code)
+    if not apt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Verification Failed: No appointment found matching verification code '{code}'. Please verify the code or search the directory.",
+        )
+
+    if apt.status == "Cancelled":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot Check In: Appointment #{apt.id} was Cancelled and cannot be verified for consultation.",
+        )
+
+    verifier_name = getattr(verified_by_user, "full_name", None) or getattr(verified_by_user, "username", "Front Desk Staff")
+    apt.is_verified = True
+    apt.verified_at = datetime.now(timezone.utc)
+    apt.verified_by = verifier_name
+    if apt.status == "Scheduled":
+        apt.status = "Checked In"
+
+    if notes and notes.strip():
+        checkin_note = f"[Reception Check-in by {verifier_name}]: {notes.strip()}"
+        apt.notes = f"{apt.notes}\n{checkin_note}" if apt.notes else checkin_note
+
+    db.add(apt)
+    db.commit()
+    db.refresh(apt)
     return apt
 
 
@@ -342,11 +450,13 @@ def get_appointment_statistics(
 
     total = base_query.count()
     scheduled = base_query.filter(Appointment.status == "Scheduled").count()
+    checked_in = base_query.filter(Appointment.status == "Checked In").count()
     completed = base_query.filter(Appointment.status == "Completed").count()
     cancelled = base_query.filter(Appointment.status == "Cancelled").count()
     return {
         "total": total,
         "scheduled": scheduled,
+        "checked_in": checked_in,
         "completed": completed,
         "cancelled": cancelled,
     }

@@ -214,23 +214,37 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    type="button"
-                    className="btn-book-doctor"
-                    style={{ flex: 1, margin: 0 }}
-                    onClick={() => handleOpenBooking(doc)}
-                    id={`btn-book-${doc.username}`}
-                  >
-                    <Calendar size={15} />
-                    <span>Book Appointment</span>
-                    <ArrowRight size={14} />
-                  </button>
+                  {currentUser?.role !== 'doctor' && (
+                    <button
+                      type="button"
+                      className="btn-book-doctor"
+                      style={{ flex: 1, margin: 0 }}
+                      onClick={() => handleOpenBooking(doc)}
+                      id={`btn-book-${doc.username}`}
+                    >
+                      <Calendar size={15} />
+                      <span>Book Appointment</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  )}
 
                   {(currentUser?.role === 'admin' || currentUser?.role === 'staff' || (currentUser?.role === 'doctor' && currentUser?.id === doc.id)) && (
                     <button
                       type="button"
                       className="btn-cancel"
-                      style={{ padding: '0 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}
+                      style={{ 
+                        flex: currentUser?.role === 'doctor' ? 1 : undefined,
+                        padding: currentUser?.role === 'doctor' ? '10px 16px' : '0 12px', 
+                        fontSize: '0.8rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        gap: '6px', 
+                        margin: 0,
+                        background: currentUser?.role === 'doctor' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(13, 148, 136, 0.2))' : undefined,
+                        borderColor: currentUser?.role === 'doctor' ? 'var(--emerald-accent)' : undefined,
+                        color: currentUser?.role === 'doctor' ? '#6ee7b7' : undefined
+                      }}
                       onClick={() => {
                         setActiveDoctorForAvailability(doc);
                         setIsAvailabilityModalOpen(true);
@@ -239,7 +253,7 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
                       id={`btn-availability-${doc.username}`}
                     >
                       <Clock size={14} />
-                      <span>Availability</span>
+                      <span>{currentUser?.role === 'doctor' ? 'My Availability & Capacity' : 'Availability'}</span>
                     </button>
                   )}
                 </div>

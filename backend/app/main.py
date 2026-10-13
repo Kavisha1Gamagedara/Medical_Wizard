@@ -12,6 +12,24 @@ from app.api.v1.router import api_router
 async def lifespan(app: FastAPI):
     # Startup: automatically create database tables
     Base.metadata.create_all(bind=engine)
+    # Ensure SQLite columns exist for appointments verification
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            res = conn.execute(text("PRAGMA table_info(appointments)")).fetchall()
+            if res:
+                col_names = [r[1] for r in res]
+                if "verification_code" not in col_names:
+                    conn.execute(text("ALTER TABLE appointments ADD COLUMN verification_code VARCHAR(50)"))
+                if "is_verified" not in col_names:
+                    conn.execute(text("ALTER TABLE appointments ADD COLUMN is_verified BOOLEAN DEFAULT 0"))
+                if "verified_at" not in col_names:
+                    conn.execute(text("ALTER TABLE appointments ADD COLUMN verified_at DATETIME"))
+                if "verified_by" not in col_names:
+                    conn.execute(text("ALTER TABLE appointments ADD COLUMN verified_by VARCHAR(200)"))
+                conn.commit()
+    except Exception as e:
+        print("Schema sync notice:", e)
     yield
     # Shutdown logic (if any)
 
