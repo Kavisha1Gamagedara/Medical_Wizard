@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Calendar, 
@@ -11,9 +11,11 @@ import {
   Sparkles,
   ArrowRight,
   Lock,
-  QrCode
+  QrCode,
+  Search,
+  UserCheck
 } from 'lucide-react';
-import { appointmentService, doctorService } from '../services/api';
+import { appointmentService, doctorService, userService } from '../services/api';
 import AppointmentReceiptModal from './AppointmentReceiptModal';
 
 const APPOINTMENT_TYPES = [
@@ -79,16 +81,27 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     return `${displayHour}:${m} ${ampm}`;
   };
 
+  const isStaffOrAdmin = currentUser?.role === 'staff' || currentUser?.role === 'admin';
+
   const [patientName, setPatientName] = useState(
     currentUser?.role === 'patient' 
       ? (currentUser.full_name || currentUser.username) 
-      : (currentUser?.full_name || '')
+      : ''
   );
   const [appointmentDatetime, setAppointmentDatetime] = useState(getTomorrowDefault());
   const [appointmentType, setAppointmentType] = useState(
     doctor.specialization === 'Dentist' ? 'Dental Checkup' : 'Specialist Consultation'
   );
   const [notes, setNotes] = useState('');
+
+  // Existing Patient Search State (for Staff / Admin)
+  const [isExistingPatient, setIsExistingPatient] = useState(false);
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState([]);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -160,7 +173,14 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       setBookingConfirmed(null);
       if (currentUser?.role === 'patient') {
         setPatientName(currentUser.full_name || currentUser.username);
+      } else {
+        setPatientName('');
       }
+      setIsExistingPatient(false);
+      setSelectedPatient(null);
+      setPatientSearchQuery('');
+      setPatientSearchResults([]);
+      setShowPatientDropdown(false);
       if (doctor?.specialization === 'Dentist') {
         setAppointmentType('Dental Checkup');
       } else {
@@ -168,6 +188,54 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       }
     }
   }, [isOpen, doctor?.username, currentUser?.id]);
+
+  // Live query for registered patients when Existing Patient checkbox is checked
+  useEffect(() => {
+    if (!isStaffOrAdmin || !isExistingPatient) {
+      setPatientSearchResults([]);
+      return;
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      setSearchingPatients(true);
+      try {
+        const results = await userService.searchPatients(patientSearchQuery);
+        if (isMounted) {
+          setPatientSearchResults(results || []);
+        }
+      } catch (err) {
+        if (isMounted) setPatientSearchResults([]);
+      } finally {
+        if (isMounted) setSearchingPatients(false);
+      }
+    }, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [patientSearchQuery, isExistingPatient, isStaffOrAdmin]);
+
+  // Close patient dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowPatientDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectExistingPatient = (pat) => {
+    setSelectedPatient(pat);
+    const chosenName = pat.full_name || pat.username;
+    setPatientName(chosenName);
+    setPatientSearchQuery(chosenName);
+    setShowPatientDropdown(false);
+    setErrorMsg('');
+  };
 
   // Live schedule collision check whenever doctor or datetime changes (skips past dates)
   useEffect(() => {
@@ -217,6 +285,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       return;
     }
 
+    if (isStaffOrAdmin && isExistingPatient && !selectedPatient) {
+      setErrorMsg('Please search and select a registered patient from the suggestions, or uncheck "Existing Patient" for walk-in / guest patients.');
+      return;
+    }
+
     if (!patientName.trim()) {
       setErrorMsg('Please enter the patient full name.');
       return;
@@ -258,7 +331,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     setLoading(true);
     try {
       const payload = {
-        patient_id: currentUser?.id || undefined,
+        patient_id: (isStaffOrAdmin && isExistingPatient && selectedPatient)
+          ? selectedPatient.id
+          : (currentUser?.role === 'patient' ? currentUser.id : undefined),
         patient_name: patientName.trim(),
         doctor: doctorName,
         appointment_datetime: new Date(appointmentDatetime).toISOString(),
@@ -294,6 +369,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const handleClose = () => {
     setBookingConfirmed(null);
     setErrorMsg('');
+    setIsExistingPatient(false);
+    setSelectedPatient(null);
+    setPatientSearchQuery('');
+    setPatientSearchResults([]);
+    setShowPatientDropdown(false);
     onClose();
   };
 
@@ -529,21 +609,351 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="book-patient-name">Patient Full Name *</label>
-              <div className="input-with-icon">
-                <input
-                  id="book-patient-name"
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. John Doe or Jane Smith"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  required
-                />
-                <User size={18} className="input-icon" />
+            {/* Staff / Admin Existing Patient Toggle */}
+            {isStaffOrAdmin && (
+              <div 
+                style={{
+                  background: isExistingPatient 
+                    ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08))' 
+                    : 'rgba(255, 255, 255, 0.03)',
+                  border: `1px solid ${isExistingPatient ? 'rgba(6, 182, 212, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  transition: 'all 0.25s ease'
+                }}
+              >
+                <label 
+                  htmlFor="book-existing-patient-checkbox" 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px', 
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    margin: 0,
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    color: isExistingPatient ? 'var(--text-primary)' : 'var(--text-secondary)'
+                  }}
+                >
+                  <input
+                    id="book-existing-patient-checkbox"
+                    type="checkbox"
+                    checked={isExistingPatient}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsExistingPatient(checked);
+                      setSelectedPatient(null);
+                      setPatientSearchQuery('');
+                      setPatientSearchResults([]);
+                      setShowPatientDropdown(false);
+                      if (!checked) {
+                        setPatientName('');
+                      }
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      accentColor: 'var(--primary)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <span>Existing Patient</span>
+                </label>
+                <span 
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: '20px',
+                    background: isExistingPatient ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                    color: isExistingPatient ? 'var(--text-accent)' : 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em'
+                  }}
+                >
+                  {isExistingPatient ? 'Profile Link Mode' : 'Guest / Walk-In'}
+                </span>
               </div>
-            </div>
+            )}
+
+            {/* Existing Patient Search & Selected Card (Staff / Admin) */}
+            {isStaffOrAdmin && isExistingPatient ? (
+              <div style={{ marginBottom: '16px' }}>
+                {selectedPatient ? (
+                  /* Selected Patient Details Card */
+                  <div 
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08))',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '14px 16px',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <UserCheck size={18} color="#10b981" />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Verified Patient Details Linked
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPatient(null);
+                          setPatientName('');
+                          setPatientSearchQuery('');
+                          setShowPatientDropdown(true);
+                        }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          padding: '4px 10px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                        }}
+                      >
+                        Change Patient
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.85rem',
+                          color: '#ffffff',
+                          flexShrink: 0
+                        }}>
+                          {(selectedPatient.full_name || selectedPatient.username || 'P').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                            Patient Name
+                          </span>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {selectedPatient.full_name || selectedPatient.username}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                          Email Address
+                        </span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          {selectedPatient.email || 'N/A'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                          Contact Phone
+                        </span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          {selectedPatient.phone_number || 'N/A'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                          Account Identifier
+                        </span>
+                        <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-accent)' }}>
+                          ID #{selectedPatient.id} (@{selectedPatient.username})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Patient Search Query Input with Suggestion Dropdown */
+                  <div className="form-group" style={{ position: 'relative', marginBottom: 0 }} ref={dropdownRef}>
+                    <label className="form-label" htmlFor="book-patient-search">
+                      Search Patient (by Name or Email) *
+                    </label>
+                    <div className="input-with-icon" style={{ position: 'relative' }}>
+                      <input
+                        id="book-patient-search"
+                        type="text"
+                        className="form-input"
+                        placeholder="Type patient name or email (e.g., Sarah or patient@clinic.com)..."
+                        value={patientSearchQuery}
+                        onChange={(e) => {
+                          setPatientSearchQuery(e.target.value);
+                          setShowPatientDropdown(true);
+                          if (errorMsg) setErrorMsg('');
+                        }}
+                        onFocus={() => setShowPatientDropdown(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.preventDefault();
+                        }}
+                        autoComplete="off"
+                        required
+                      />
+                      <Search size={18} className="input-icon" />
+                      {searchingPatients && (
+                        <span style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: '0.74rem',
+                          color: 'var(--text-accent)',
+                          fontWeight: 600
+                        }}>
+                          Searching...
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Autocomplete Dropdown */}
+                    {showPatientDropdown && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '6px',
+                          background: '#151c2c',
+                          border: '1px solid rgba(6, 182, 212, 0.35)',
+                          borderRadius: 'var(--radius-md)',
+                          boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65)',
+                          maxHeight: '260px',
+                          overflowY: 'auto',
+                          zIndex: 100,
+                          padding: '6px'
+                        }}
+                      >
+                        {searchingPatients ? (
+                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                            Searching registered patients...
+                          </div>
+                        ) : patientSearchResults.length > 0 ? (
+                          <div>
+                            <div style={{ 
+                              padding: '6px 10px', 
+                              fontSize: '0.7rem', 
+                              color: 'var(--text-muted)', 
+                              textTransform: 'uppercase', 
+                              fontWeight: 700,
+                              letterSpacing: '0.04em' 
+                            }}>
+                              Matching Registered Patients ({patientSearchResults.length})
+                            </div>
+                            {patientSearchResults.map((pat) => (
+                              <div
+                                key={pat.id}
+                                onClick={() => handleSelectExistingPatient(pat)}
+                                style={{
+                                  padding: '10px 12px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  cursor: 'pointer',
+                                  transition: 'background 0.15s ease',
+                                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.12)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <div style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(16, 185, 129, 0.3))',
+                                    border: '1px solid rgba(6, 182, 212, 0.4)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    color: 'var(--text-primary)'
+                                  }}>
+                                    {(pat.full_name || pat.username || 'P').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {pat.full_name || pat.username}
+                                    </div>
+                                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                                      {pat.email} {pat.phone_number ? `• ${pat.phone_number}` : ''}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  padding: '4px 10px',
+                                  borderRadius: '12px',
+                                  background: 'rgba(6, 182, 212, 0.18)',
+                                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                                  color: 'var(--text-accent)',
+                                  fontWeight: 600
+                                }}>
+                                  Select Patient
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                            {patientSearchQuery.trim()
+                              ? `No registered patients found matching "${patientSearchQuery}"`
+                              : 'Type patient full name or email address to view suggestions'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Regular / Guest Walk-in Patient Full Name Input */
+              <div className="form-group">
+                <label className="form-label" htmlFor="book-patient-name">Patient Full Name *</label>
+                <div className="input-with-icon">
+                  <input
+                    id="book-patient-name"
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. John Doe or Jane Smith"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    required
+                  />
+                  <User size={18} className="input-icon" />
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label" htmlFor="book-datetime">Appointment Date & Time *</label>

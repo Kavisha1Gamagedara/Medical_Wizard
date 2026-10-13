@@ -497,3 +497,77 @@ def test_admin_register_staff_and_doctors(client):
     assert res_anon.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+def test_staff_search_existing_patients_and_book_appointment(client):
+    """
+    Verify staff and admin can search registered patients by name/email,
+    and book an appointment linking the existing patient's patient_id.
+    Verify patient and doctor cannot access the /patients endpoint.
+    """
+    # 1. Register staff member, doctor, and patient
+    staff_user = register_user(
+        client, "reception_amy", "reception_amy@clinic.com", "Password123!", role="staff", full_name="Amy Receptionist"
+    )
+    patient_user = register_user(
+        client, "patient_oliver", "oliver.twist@example.com", "Password123!", role="patient", full_name="Oliver Twist"
+    )
+    doc_user = register_user(
+        client, "dr_watson", "watson@clinic.com", "Password123!", role="doctor", full_name="Dr. John Watson", specialization="General Physician"
+    )
+
+    staff_token = get_auth_token(client, "reception_amy", "Password123!")
+    patient_token = get_auth_token(client, "patient_oliver", "Password123!")
+    doctor_token = get_auth_token(client, "dr_watson", "Password123!")
+
+    headers_staff = {"Authorization": f"Bearer {staff_token}"}
+    headers_patient = {"Authorization": f"Bearer {patient_token}"}
+    headers_doctor = {"Authorization": f"Bearer {doctor_token}"}
+
+    # 2. Staff searches patients by partial name
+    res_search_name = client.get("/api/v1/users/patients?search=Oliver", headers=headers_staff)
+    assert res_search_name.status_code == status.HTTP_200_OK
+    results = res_search_name.json()
+    assert len(results) >= 1
+    found = next((p for p in results if p["username"] == "patient_oliver"), None)
+    assert found is not None
+    assert found["email"] == "oliver.twist@example.com"
+
+    # 3. Staff searches patients by partial email
+    res_search_email = client.get("/api/v1/users/patients?search=oliver.twist", headers=headers_staff)
+    assert res_search_email.status_code == status.HTTP_200_OK
+    assert any(p["username"] == "patient_oliver" for p in res_search_email.json())
+
+    # 4. Patient and Doctor attempting to access /api/v1/users/patients are rejected with 403 Forbidden
+    res_pat_forbidden = client.get("/api/v1/users/patients", headers=headers_patient)
+    assert res_pat_forbidden.status_code == status.HTTP_403_FORBIDDEN
+
+    res_doc_forbidden = client.get("/api/v1/users/patients", headers=headers_doctor)
+    assert res_doc_forbidden.status_code == status.HTTP_403_FORBIDDEN
+
+    # 5. Staff books an appointment for the existing patient, linking their patient_id
+    future_dt = (datetime.now(timezone.utc) + timedelta(days=20)).isoformat()
+    res_book = client.post(
+        "/api/v1/appointments",
+        json={
+            "patient_id": patient_user["id"],
+            "patient_name": patient_user["full_name"],
+            "doctor": "Dr. John Watson",
+            "appointment_datetime": future_dt,
+            "appointment_type": "General Consultation",
+            "notes": "Booked by front desk for existing patient Oliver",
+        },
+        headers=headers_staff,
+    )
+    assert res_book.status_code == status.HTTP_201_CREATED
+    apt_data = res_book.json()
+    assert apt_data["patient_id"] == patient_user["id"]
+    assert apt_data["patient_name"] == "Oliver Twist"
+    assert apt_data["doctor"] == "Dr. John Watson"
+
+    # 6. Patient logs in and can see this appointment in their appointments list
+    res_pat_list = client.get("/api/v1/appointments", headers=headers_patient)
+    assert res_pat_list.status_code == status.HTTP_200_OK
+    pat_apts = res_pat_list.json()
+    assert any(a["id"] == apt_data["id"] for a in pat_apts)
+
+
+

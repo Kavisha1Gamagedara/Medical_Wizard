@@ -220,5 +220,13 @@ export const userService = {
   async getAdminSummary() {
     return await apiRequest('/api/v1/users/summary');
   },
+
+  async searchPatients(search = '') {
+    const query = new URLSearchParams();
+    if (search && search.trim()) query.append('search', search.trim());
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/users/patients${queryString}`);
+  },
 };
+
 

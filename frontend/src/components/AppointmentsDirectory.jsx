@@ -373,7 +373,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="role-pill patient">Patient Account</span>
             <span style={{ fontSize: '0.88rem', color: '#0f172a' }}>
-              Logged in as <strong>{currentUser.full_name || currentUser.username}</strong> &bull; Showing only consultations booked by you.
+              Logged in as <strong>{currentUser.full_name || currentUser.username}</strong>
             </span>
           </div>
           <button
