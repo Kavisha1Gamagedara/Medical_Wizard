@@ -2917,6 +2917,177 @@ body {
 }
 
 /* ==========================================================================
+   CITYCARE LIGHT THEME MODALS, STATUS BADGES & APPOINTMENT TABLE STYLES
+   ========================================================================== */
+
+.citycare-app-root .modal-backdrop {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1200;
+}
+
+.citycare-app-root .modal-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  color: #0f172a;
+}
+
+.citycare-app-root .modal-header {
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+  padding: 22px 26px;
+}
+
+.citycare-app-root .modal-header h2,
+.citycare-app-root .modal-header h3 {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.citycare-app-root .modal-close-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  border-radius: 10px;
+}
+
+.citycare-app-root .modal-close-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fecdd3;
+}
+
+.citycare-app-root .modal-body {
+  color: #334155;
+  background: #ffffff;
+  padding: 24px 26px;
+}
+
+.citycare-app-root .modal-footer {
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  padding: 18px 26px;
+}
+
+.citycare-app-root .modal-container .form-label,
+.citycare-app-root .form-label {
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.84rem;
+  margin-bottom: 6px;
+}
+
+.citycare-app-root .modal-container .form-input,
+.citycare-app-root .modal-container select,
+.citycare-app-root .modal-container textarea {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+
+.citycare-app-root .modal-container .form-input:focus,
+.citycare-app-root .modal-container select:focus,
+.citycare-app-root .modal-container textarea:focus {
+  border-color: #0284c7;
+  background: #ffffff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+/* Status Badges */
+.citycare-app-root .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.citycare-app-root .status-badge.expired {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.citycare-app-root .status-badge.scheduled {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+.citycare-app-root .status-badge.completed {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.citycare-app-root .status-badge.checkedin,
+.citycare-app-root .status-badge.checked-in {
+  background: #dcfce7;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.citycare-app-root .status-badge.cancelled {
+  background: #ffe4e6;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+.citycare-app-root .status-badge.noshow {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Action Icons */
+.citycare-app-root .btn-action-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.citycare-app-root .btn-action-icon:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.citycare-app-root .btn-action-icon.delete {
+  color: #e11d48;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.citycare-app-root .btn-action-icon.delete:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.citycare-app-root .btn-action-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
    ADMINISTRATOR COMMAND CENTER & DYNAMIC TELEMETRY STYLES
    ========================================================================== */
 
