@@ -32,6 +32,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
   const doctorName = doctor.full_name || `Dr. ${doctor.username}`;
   
+  // Format Date/datetime string to local 'YYYY-MM-DDTHH:mm:ss' without timezone conversion
+  const formatAppointmentDatetimeToLocal = (dtStr) => {
+    if (!dtStr) return '';
+    // If it's already YYYY-MM-DDTHH:mm, append :00
+    if (dtStr.length === 16) return `${dtStr}:00`;
+    // If it already has seconds, take the first 19 chars (YYYY-MM-DDTHH:mm:ss)
+    if (dtStr.length >= 19 && dtStr.includes('T')) return dtStr.slice(0, 19);
+    return dtStr;
+  };
+
   // Format Date to local 'YYYY-MM-DDTHH:mm' string for datetime-local input
   const formatToLocalDateTime = (date) => {
     const pad = (n) => String(n).padStart(2, '0');
@@ -356,8 +366,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     const timer = setTimeout(async () => {
       setCheckingAvailability(true);
       try {
-        const iso = new Date(appointmentDatetime).toISOString();
-        const res = await appointmentService.checkAvailability(doctorName, iso);
+        const localIso = formatAppointmentDatetimeToLocal(appointmentDatetime);
+        const res = await appointmentService.checkAvailability(doctorName, localIso);
         if (!res.available) {
           const doc = res.conflict_doctor || doctorName;
           setConflictWarning(`${doc} already has an appointment scheduled for the selected time`);
@@ -449,7 +459,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
           : (currentUser?.role === 'patient' ? currentUser.id : undefined),
         patient_name: patientName.trim(),
         doctor: doctorName,
-        appointment_datetime: new Date(appointmentDatetime).toISOString(),
+        appointment_datetime: formatAppointmentDatetimeToLocal(appointmentDatetime),
         appointment_type: appointmentType,
         status: 'Scheduled',
         notes: notes.trim() || undefined,

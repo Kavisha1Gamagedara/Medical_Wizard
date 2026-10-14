@@ -455,48 +455,25 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
   // =========================================================================
   if (isPatient) {
     const normalizeName = (str) => (str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
-    const patientNotifs = (() => {
-      try {
-        const localAll = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
-        const filteredLocal = localAll.filter((n) => {
-          if (n.patientId && currentUser.id && Number(n.patientId) === Number(currentUser.id)) {
-            return true;
-          }
-          const currentNorm = normalizeName(currentUser.full_name || currentUser.username);
-          const notifNorm = normalizeName(n.patientName);
-          return Boolean(currentNorm && notifNorm && (currentNorm === notifNorm || currentNorm.includes(notifNorm) || notifNorm.includes(currentNorm)));
-        });
-
-        // Map backend notifications to uniform format
-        const backendNotifs = (userNotifications || []).map((bn) => ({
-          id: `backend-${bn.id}`,
-          title: bn.title,
-          message: bn.message,
-          channel: bn.channel,
-          timestamp: bn.created_at,
-          doctor: bn.doctor,
-        }));
-
-        // Deduplicate or combine
-        return [...backendNotifs, ...filteredLocal];
-      } catch {
-        return (userNotifications || []).map((bn) => ({
-          id: `backend-${bn.id}`,
-          title: bn.title,
-          message: bn.message,
-          channel: bn.channel,
-          timestamp: bn.created_at,
-          doctor: bn.doctor,
-        }));
-      }
-    })();
+    // Backend-driven notifications for this patient
+    const patientNotifs = (userNotifications || []).filter(n => n.patient_id === currentUser.id);
 
     const handleCancelWaitlist = async (waitlistId) => {
       try {
         await waitlistService.cancelWaitlist(waitlistId);
         loadRealData();
       } catch (err) {
+        alert('Failed to cancel waitlist request: ' + (err.message || 'Unknown error'));
         console.error('Failed to cancel waitlist:', err);
+      }
+    };
+
+    const handleClaimWaitlistSlot = async (waitlistId) => {
+      try {
+        await waitlistService.claimWaitlistSlot(waitlistId);
+        loadRealData();
+      } catch (err) {
+        alert('Failed to claim slot: ' + (err.message || 'Unknown error'));
       }
     };
 
@@ -615,19 +592,20 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
                         {entry.status === 'Notified' && (
                           <button
                             type="button"
-                            onClick={() => onNavigate && onNavigate('doctors')}
+                            onClick={() => handleClaimWaitlistSlot(entry.id)}
                             style={{
-                              background: '#16a34a',
+                              background: 'linear-gradient(135deg, #16a34a, #15803d)',
                               color: '#ffffff',
                               border: 'none',
                               borderRadius: '8px',
-                              padding: '6px 12px',
+                              padding: '6px 14px',
                               fontSize: '0.75rem',
                               fontWeight: 700,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
                             }}
                           >
-                            Claim Slot
+                            ⚡ Claim Slot & Book
                           </button>
                         )}
                         <button
@@ -690,7 +668,6 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
                 <button
                   type="button"
                   onClick={async () => {
-                    localStorage.setItem('mw_patient_notifications', JSON.stringify([]));
                     try {
                       await notificationService.markAllRead();
                     } catch {}

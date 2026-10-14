@@ -24,6 +24,7 @@ import AppointmentReceiptModal from './AppointmentReceiptModal';
 import StaffVerifyPatientModal from './StaffVerifyPatientModal';
 import ContactPatientModal from './ContactPatientModal';
 import AppointmentReminderModal from './AppointmentReminderModal';
+import WaitlistModal from './WaitlistModal';
 
 export default function AppointmentsDirectory({ onNewBookingClick, currentUser, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
@@ -60,6 +61,11 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
   const [deletingId, setDeletingId] = useState(null);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null); // { text: '', type: 'success' | 'error' }
+
+  // Waitlist modal state
+  const [waitlistApt, setWaitlistApt] = useState(null);
+  const [showCancelPolicy, setShowCancelPolicy] = useState(false);
+  const [cancelledApt, setCancelledApt] = useState(null);
 
   // Verification & Receipt State
   const [selectedReceiptApt, setSelectedReceiptApt] = useState(null);
@@ -201,12 +207,24 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
         }
       }
 
-      await appointmentService.updateAppointment(aptId, payload);
+      const updatedApt = await appointmentService.updateAppointment(aptId, payload);
       setEditingApt(null);
       await fetchAppointments();
+      if (editStatus === 'Cancelled' && editingApt) {
+        // Notify backend listeners about the cancellation (triggers waitlist notification check)
+        window.dispatchEvent(new CustomEvent('mw_appointment_cancelled', { detail: { aptId, doctor: editingApt.doctor } }));
+        window.dispatchEvent(new CustomEvent('mw_notification_created'));
+        // Offer patient the option to join waitlist for another slot
+        if (isPatient) {
+          setCancelledApt({ ...editingApt, ...updatedApt });
+          setShowCancelPolicy(true);
+        }
+      }
       showFeedback(
         isRescheduling 
           ? `Appointment #${aptId} successfully rescheduled to ${new Date(payload.appointment_datetime || editingApt.appointment_datetime).toLocaleDateString()} at ${payload.appointment_datetime ? new Date(payload.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}!`
+          : editStatus === 'Cancelled'
+          ? `Appointment #${aptId} cancelled. You'll be notified if a slot reopens.`
           : `Appointment #${aptId} updated successfully.`
       );
     } catch (err) {
@@ -226,10 +244,13 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
     const id = appointmentToDelete.id;
     setDeletingId(id);
     try {
+      const delApt = appointmentToDelete;
       await appointmentService.deleteAppointment(id);
       setAppointmentToDelete(null);
       await fetchAppointments();
-      showFeedback(`Appointment #${id} deleted successfully.`);
+      window.dispatchEvent(new CustomEvent('mw_appointment_cancelled', { detail: { aptId: id } }));
+      window.dispatchEvent(new CustomEvent('mw_notification_created'));
+      showFeedback(`Appointment #${id} deleted. Waitlisted patients have been notified.`);
     } catch (err) {
       showFeedback(`Deletion failed: ${err.message}`, 'error');
     } finally {
@@ -1243,6 +1264,127 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           onClose={() => setSelectedReminderApt(null)}
           onNotificationSent={({ patientName, channel }) => {
             showFeedback(`Automated ${channel.toUpperCase()} reminder dispatched to ${patientName}.`);
+          }}
+        />
+      )}
+
+      {/* Cancellation Confirmed + Join Waitlist Prompt (Patient Only) */}
+      {showCancelPolicy && cancelledApt && isPatient && (
+        <div className="modal-backdrop" style={{ zIndex: 1280 }}>
+          <div
+            className="modal-container"
+            style={{
+              maxWidth: '460px',
+              background: '#ffffff',
+              borderRadius: '24px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.28)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '28px 28px 22px', textAlign: 'center' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: '#fef3c7',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 14px',
+                fontSize: '1.6rem',
+              }}>
+                ✅
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                Appointment Cancelled
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.84rem', lineHeight: 1.5, margin: '0 0 16px' }}>
+                Your appointment with <strong>{cancelledApt.doctor}</strong> has been cancelled. 
+                Waitlisted patients have been notified of the freed slot.
+              </p>
+
+              {/* Cancellation Policy Summary */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '14px',
+                padding: '14px 16px',
+                textAlign: 'left',
+                fontSize: '0.78rem',
+                color: '#475569',
+                marginBottom: '20px',
+                lineHeight: 1.7,
+              }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>📋 CityCare Cancellation Policy</div>
+                <div>• Slot was <strong>immediately freed</strong> for other patients on the waitlist.</div>
+                <div>• Cancellations within <strong>24 hours</strong> of the appointment may affect your priority score.</div>
+                <div>• You can join the waitlist below if you still need this doctor on a future date.</div>
+              </div>
+
+              <p style={{ fontSize: '0.84rem', color: '#334155', fontWeight: 600, marginBottom: '16px' }}>
+                Would you like to join the priority waitlist for {cancelledApt.doctor}?
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  style={{ flex: 1, padding: '10px 16px', borderRadius: '12px' }}
+                  onClick={() => { setShowCancelPolicy(false); setCancelledApt(null); }}
+                >
+                  No, I'm Done
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    flex: 2,
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                  }}
+                  onClick={() => {
+                    setWaitlistApt(cancelledApt);
+                    setShowCancelPolicy(false);
+                  }}
+                  id="btn-join-waitlist-after-cancel"
+                >
+                  🔔 Join Waitlist for {cancelledApt.doctor}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Waitlist Join Modal */}
+      {waitlistApt && (
+        <WaitlistModal
+          isOpen={Boolean(waitlistApt)}
+          onClose={() => setWaitlistApt(null)}
+          doctor={waitlistApt.doctor}
+          preferredDate={
+            waitlistApt.appointment_datetime
+              ? new Date(waitlistApt.appointment_datetime).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0]
+          }
+          currentUser={currentUser}
+          onJoined={(entry) => {
+            setWaitlistApt(null);
+            setCancelledApt(null);
+            showFeedback(`You have joined the priority waitlist for ${entry.doctor} on ${entry.preferred_date}. We'll alert you instantly when a slot opens!`);
+            window.dispatchEvent(new CustomEvent('mw_notification_created'));
           }}
         />
       )}

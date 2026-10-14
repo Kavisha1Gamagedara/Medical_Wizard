@@ -276,6 +276,22 @@ export const waitlistService = {
       method: 'POST',
     });
   },
+
+  async claimWaitlistSlot(id) {
+    return await apiRequest(`/api/v1/waitlist/${id}/claim`, {
+      method: 'POST',
+    });
+  },
 };
 
+export const notificationApiService = {
+  async getNotifications() {
+    return await apiRequest('/api/v1/notifications');
+  },
 
+  async markAllRead() {
+    return await apiRequest('/api/v1/notifications/mark-all-read', {
+      method: 'PUT',
+    });
+  },
+};
