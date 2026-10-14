@@ -31,7 +31,7 @@ import {
   Lock,
   LayoutDashboard
 } from 'lucide-react';
-import { appointmentService, doctorService, userService, authService } from '../services/api';
+import { appointmentService, doctorService, userService, authService, notificationService, waitlistService } from '../services/api';
 import citycareHeroBg from '../assets/citycare_hero_bg.jpg';
 import AdminUsersManager from './AdminUsersManager';
 import AboutUsSection from './AboutUsSection';
@@ -95,14 +95,37 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
     }
   });
 
+  const [userNotifications, setUserNotifications] = useState([]);
+  const [userWaitlist, setUserWaitlist] = useState([]);
+
   const loadRealData = async () => {
     setLoadingRealData(true);
     try {
-      const [summaryRes, aptsRes, docsRes] = await Promise.allSettled([
+      const promises = [
         userService.getAdminSummary(),
         appointmentService.getAppointments(),
         doctorService.getAllDoctors()
-      ]);
+      ];
+
+      // If logged in, fetch notifications and waitlist entries from backend
+      if (currentUser) {
+        promises.push(notificationService.getNotifications().catch(() => []));
+        promises.push(waitlistService.getWaitlist().catch(() => []));
+      }
+
+      const results = await Promise.allSettled(promises);
+      const summaryRes = results[0];
+      const aptsRes = results[1];
+      const docsRes = results[2];
+      const notifsRes = currentUser ? results[3] : null;
+      const waitlistRes = currentUser ? results[4] : null;
+
+      if (notifsRes && notifsRes.status === 'fulfilled' && Array.isArray(notifsRes.value)) {
+        setUserNotifications(notifsRes.value);
+      }
+      if (waitlistRes && waitlistRes.status === 'fulfilled' && Array.isArray(waitlistRes.value)) {
+        setUserWaitlist(waitlistRes.value);
+      }
 
       if (summaryRes.status === 'fulfilled' && summaryRes.value) {
         const sum = summaryRes.value;
@@ -156,6 +179,12 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
 
   useEffect(() => {
     loadRealData();
+
+    const handleNotifEvent = () => {
+      loadRealData();
+    };
+    window.addEventListener('mw_notification_created', handleNotifEvent);
+    return () => window.removeEventListener('mw_notification_created', handleNotifEvent);
   }, [currentUser]);
 
   // Dynamic calculations for Weekday Volume Area Curve
@@ -428,8 +457,8 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
     const normalizeName = (str) => (str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
     const patientNotifs = (() => {
       try {
-        const all = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
-        return all.filter((n) => {
+        const localAll = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
+        const filteredLocal = localAll.filter((n) => {
           if (n.patientId && currentUser.id && Number(n.patientId) === Number(currentUser.id)) {
             return true;
           }
@@ -437,10 +466,39 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
           const notifNorm = normalizeName(n.patientName);
           return Boolean(currentNorm && notifNorm && (currentNorm === notifNorm || currentNorm.includes(notifNorm) || notifNorm.includes(currentNorm)));
         });
+
+        // Map backend notifications to uniform format
+        const backendNotifs = (userNotifications || []).map((bn) => ({
+          id: `backend-${bn.id}`,
+          title: bn.title,
+          message: bn.message,
+          channel: bn.channel,
+          timestamp: bn.created_at,
+          doctor: bn.doctor,
+        }));
+
+        // Deduplicate or combine
+        return [...backendNotifs, ...filteredLocal];
       } catch {
-        return [];
+        return (userNotifications || []).map((bn) => ({
+          id: `backend-${bn.id}`,
+          title: bn.title,
+          message: bn.message,
+          channel: bn.channel,
+          timestamp: bn.created_at,
+          doctor: bn.doctor,
+        }));
       }
     })();
+
+    const handleCancelWaitlist = async (waitlistId) => {
+      try {
+        await waitlistService.cancelWaitlist(waitlistId);
+        loadRealData();
+      } catch (err) {
+        console.error('Failed to cancel waitlist:', err);
+      }
+    };
 
     return (
       <div className="citycare-outer-frame">
@@ -478,6 +536,124 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
           </div>
         </div>
 
+        {/* Priority Waitlist Status Banner */}
+        {userWaitlist && userWaitlist.filter((w) => w.status === 'Waiting' || w.status === 'Notified').length > 0 && (
+          <div style={{ padding: '0 32px', marginTop: '16px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+              border: '1.5px solid #fde047',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#ca8a04',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <strong style={{ color: '#854d0e', fontSize: '0.92rem' }}>
+                      Active Priority Waitlist Requests ({userWaitlist.filter((w) => w.status === 'Waiting' || w.status === 'Notified').length})
+                    </strong>
+                    <span style={{ fontSize: '0.74rem', color: '#a16207', marginLeft: '8px', fontWeight: 600 }}>
+                      Automatic slot reclaim is active. You will be alerted the second a spot is freed!
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {userWaitlist
+                  .filter((w) => w.status === 'Waiting' || w.status === 'Notified')
+                  .map((entry) => (
+                    <div
+                      key={entry.id}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #fef08a',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.86rem' }}>
+                            Dr. {entry.doctor}
+                          </span>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            background: entry.status === 'Notified' ? '#dcfce7' : '#fef3c7',
+                            color: entry.status === 'Notified' ? '#15803d' : '#854d0e'
+                          }}>
+                            {entry.status === 'Notified' ? '⚡ SLOT AVAILABLE - CLAIM NOW' : 'WAITING IN QUEUE'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                          Preferred Date: <strong>{entry.preferred_date}</strong> {entry.preferred_time ? `(${entry.preferred_time})` : ''}
+                          {entry.notes && ` • Note: ${entry.notes}`}
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {entry.status === 'Notified' && (
+                          <button
+                            type="button"
+                            onClick={() => onNavigate && onNavigate('doctors')}
+                            style={{
+                              background: '#16a34a',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '6px 12px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Claim Slot
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleCancelWaitlist(entry.id)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '8px',
+                            color: '#64748b',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            padding: '5px 10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Live Patient Notifications & Reminders Alert Banner */}
         {patientNotifs.length > 0 && (
           <div style={{ padding: '0 32px', marginTop: '16px' }}>
@@ -513,8 +689,12 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     localStorage.setItem('mw_patient_notifications', JSON.stringify([]));
+                    try {
+                      await notificationService.markAllRead();
+                    } catch {}
+                    setUserNotifications([]);
                     window.dispatchEvent(new CustomEvent('mw_notification_created'));
                   }}
                   style={{
@@ -567,7 +747,7 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
                       </div>
                     </div>
                     <small style={{ color: '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                      {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {notif.timestamp ? new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </small>
                   </div>
                 ))}

@@ -15,7 +15,7 @@ import {
   Search,
   UserCheck
 } from 'lucide-react';
-import { appointmentService, doctorService, userService } from '../services/api';
+import { appointmentService, doctorService, userService, waitlistService } from '../services/api';
 import AppointmentReceiptModal from './AppointmentReceiptModal';
 
 const APPOINTMENT_TYPES = [
@@ -115,6 +115,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const [daySchedule, setDaySchedule] = useState(null);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
 
+  // Priority Waiting list state
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  const [waitlistSuccess, setWaitlistSuccess] = useState('');
+  const [waitlistError, setWaitlistError] = useState('');
+
   // Derived validation: whether user has picked a past date/time
   const isPastSelected = isPastDateTime(appointmentDatetime);
   const selectedDateStr = appointmentDatetime ? appointmentDatetime.slice(0, 10) : '';
@@ -209,6 +214,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       setErrorMsg('');
       setConflictWarning('');
       setBookingConfirmed(null);
+      setWaitlistSuccess('');
+      setWaitlistError('');
       if (currentUser?.role === 'patient') {
         setPatientName(currentUser.full_name || currentUser.username);
       } else {
@@ -226,6 +233,31 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
       }
     }
   }, [isOpen, doctor?.username, currentUser?.id]);
+
+  const handleJoinWaitlist = async () => {
+    if (!currentUser) {
+      setWaitlistError('Please log in as a patient to join the priority waitlist.');
+      return;
+    }
+    setJoiningWaitlist(true);
+    setWaitlistError('');
+    setWaitlistSuccess('');
+    try {
+      await waitlistService.joinWaitlist({
+        doctor: doctorName,
+        preferred_date: selectedDateStr,
+        preferred_time: selectedTimeStr || undefined,
+        notes: notes.trim() || undefined,
+      });
+      setWaitlistSuccess(`You have successfully joined the Priority Waitlist for Dr. ${doctorName} on ${selectedDateStr}. If any appointment is cancelled, you will be notified immediately!`);
+      // Also trigger a storage event so dashboards update
+      window.dispatchEvent(new CustomEvent('mw_notification_created'));
+    } catch (err) {
+      setWaitlistError(err.message || 'Failed to join waitlist. You may already be on the list.');
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
 
   // Live query for registered patients when Existing Patient checkbox is checked
   useEffect(() => {
@@ -1141,9 +1173,73 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   )}
 
                   {daySchedule.is_capacity_reached && daySchedule.is_available && (
-                    <div style={{ color: '#f87171', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                      <AlertCircle size={14} />
-                      <span>Daily limit reached: {doctorName} accepts a maximum of {daySchedule.max_appointments} appointments for this date and is fully booked. Please select another date.</span>
+                    <div style={{
+                      marginTop: '8px',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      borderRadius: '12px',
+                      padding: '12px 14px'
+                    }}>
+                      <div style={{ color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <AlertCircle size={15} />
+                        <span>Daily limit reached: {doctorName} accepts a maximum of {daySchedule.max_appointments} appointments for this date and is fully booked.</span>
+                      </div>
+
+                      {/* Priority Waiting List Option */}
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(239, 68, 68, 0.2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                          <div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                              Join the Priority Waitlist
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                              If any patient cancels, an instant notification will be dispatched so you can reclaim this slot.
+                            </div>
+                          </div>
+                          
+                          {waitlistSuccess ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '0.78rem', fontWeight: 700, background: '#f0fdf4', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                              <CheckCircle2 size={14} />
+                              <span>Waitlist Confirmed!</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleJoinWaitlist}
+                              disabled={joiningWaitlist}
+                              style={{
+                                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '7px 14px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: joiningWaitlist ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Sparkles size={13} />
+                              <span>{joiningWaitlist ? 'Joining Waitlist...' : 'Join Priority Waitlist'}</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {waitlistSuccess && (
+                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#15803d', fontWeight: 600 }}>
+                            {waitlistSuccess}
+                          </div>
+                        )}
+                        {waitlistError && (
+                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>
+                            {waitlistError}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 

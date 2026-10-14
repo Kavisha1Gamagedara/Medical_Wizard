@@ -462,6 +462,7 @@ def update_appointment(
             )
 
     update_data = appointment_in.model_dump(exclude_unset=True)
+    previous_status = apt.status
     for field, value in update_data.items():
         if value is not None:
             if field == "appointment_datetime":
@@ -471,13 +472,81 @@ def update_appointment(
     db.add(apt)
     db.commit()
     db.refresh(apt)
+
+    # Automatic Slot Reclaim: If appointment was newly cancelled, alert the next waitlisted patient
+    if apt.status == "Cancelled" and previous_status != "Cancelled":
+        notify_waitlist_on_cancellation(db, apt.doctor, apt.appointment_datetime)
+
     return apt
+
+
+def notify_waitlist_on_cancellation(db: Session, doctor_name: str, apt_datetime: datetime):
+    """
+    Automatic Slot Reclaim:
+    When an appointment is cancelled or freed up, search for the next patient in the Priority Waitlist
+    for this doctor and date, and dispatch an automated notification alert.
+    """
+    try:
+        from app.models.waitlist import Waitlist
+        from app.models.notification import Notification
+
+        date_str = apt_datetime.strftime("%Y-%m-%d")
+        clean_doc = normalize_doctor_name(doctor_name)
+
+        query = db.query(Waitlist).filter(
+            Waitlist.status == "Waiting",
+            Waitlist.preferred_date == date_str,
+        )
+
+        # Match doctor by exact or partial name
+        waitlist_entries = query.order_by(Waitlist.created_at.asc()).all()
+        matched_entry = None
+        for entry in waitlist_entries:
+            if entry.doctor.strip().lower() == doctor_name.strip().lower() or (
+                clean_doc and clean_doc in normalize_doctor_name(entry.doctor)
+            ):
+                matched_entry = entry
+                break
+
+        if matched_entry:
+            time_formatted = apt_datetime.strftime("%I:%M %p")
+            matched_entry.status = "Notified"
+            matched_entry.notified_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.add(matched_entry)
+
+            # Create priority alert notification
+            slot_alert = Notification(
+                patient_id=matched_entry.patient_id,
+                title="⚡ Slot Reclaimed: Appointment Available!",
+                message=(
+                    f"Great news! A consultation slot opened up with Dr. {doctor_name} on {date_str} at {time_formatted} "
+                    f"due to a cancellation. You are at the top of the priority waitlist. Please book or confirm immediately!"
+                ),
+                doctor=doctor_name,
+                channel="In-App Dashboard",
+                timing="immediate",
+                is_read=False,
+            )
+            db.add(slot_alert)
+            db.commit()
+    except Exception as e:
+        # Don't fail the cancellation if waitlist notification fails
+        import logging
+        logging.getLogger(__name__).error(f"Error notifying waitlist on slot cancellation: {e}")
 
 
 def delete_appointment(db: Session, appointment_id: int) -> Dict[str, Any]:
     apt = get_appointment_by_id(db, appointment_id)
+    doc_name = apt.doctor
+    apt_dt = apt.appointment_datetime
+    prev_status = apt.status
+
     db.delete(apt)
     db.commit()
+
+    if prev_status == "Scheduled":
+        notify_waitlist_on_cancellation(db, doc_name, apt_dt)
+
     return {"success": True, "deleted_id": appointment_id, "message": "Appointment deleted successfully."}
 
 
