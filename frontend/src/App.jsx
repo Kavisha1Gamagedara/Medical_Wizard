@@ -14,7 +14,8 @@ import {
   Bell,
   Settings,
   Users,
-  UserPlus
+  UserPlus,
+  Glasses
 } from 'lucide-react';
 import CityCareDashboard from './components/CityCareDashboard';
 import DoctorsPage from './components/DoctorsPage';
@@ -33,6 +34,43 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Elder Vision Accessibility Mode state (persisted in localStorage)
+  const [elderVision, setElderVision] = useState(() => {
+    try {
+      return localStorage.getItem('medical_wizard_elder_vision') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Sync elder vision class to document for global stylesheet scaling
+  useEffect(() => {
+    try {
+      if (elderVision) {
+        document.documentElement.classList.add('elder-vision-mode');
+        document.body.classList.add('elder-vision-mode');
+        localStorage.setItem('medical_wizard_elder_vision', 'true');
+      } else {
+        document.documentElement.classList.remove('elder-vision-mode');
+        document.body.classList.remove('elder-vision-mode');
+        localStorage.setItem('medical_wizard_elder_vision', 'false');
+      }
+    } catch (e) {
+      // ignore localStorage errors in sandboxed environments
+    }
+  }, [elderVision]);
+
+  const toggleElderVision = () => {
+    setElderVision((prev) => {
+      const next = !prev;
+      showToast(next
+        ? '👓 Elder Vision Enabled: Font sizes, images, and contrast scaled for clear reading.'
+        : '👓 Elder Vision Disabled: Standard view restored.'
+      );
+      return next;
+    });
+  };
 
   // Modals state
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -181,8 +219,8 @@ export default function App() {
     <div className="citycare-app-root">
       {/* Toast Notification Banner (Auto-dismisses in 3s or on click) */}
       {toastMessage && (
-        <div 
-          className="portal-toast-banner" 
+        <div
+          className="portal-toast-banner"
           onClick={() => setToastMessage('')}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           title="Click to dismiss"
@@ -306,8 +344,25 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Right Controls: Staff Quick Action, Notification Bell, Settings, Avatar */}
+        {/* Right Controls: Elder Vision Accessibility, Staff Quick Action, Notification Bell, Settings, Avatar */}
         <div className="citycare-nav-right">
+          {/* Elder Vision Accessibility Toggle */}
+          <button
+            type="button"
+            className={`citycare-elder-vision-toggle ${elderVision ? 'active' : ''}`}
+            onClick={toggleElderVision}
+            title={elderVision ? "Elder Vision is ACTIVE (Click to switch to standard view)" : "Turn ON Elder Vision (Large text, bigger images & high contrast)"}
+            aria-label="Toggle Elder Vision accessibility mode"
+            aria-pressed={elderVision}
+            id="nav-elder-vision-toggle"
+          >
+            <Glasses size={17} className="elder-vision-icon" />
+            <span className="elder-vision-text">Elder Vision</span>
+            <span className={`elder-vision-switch-indicator ${elderVision ? 'on' : 'off'}`}>
+              <span className="elder-vision-switch-knob" />
+            </span>
+          </button>
+
           {user && (user.role === 'staff' || user.role === 'admin') && (
             <button
               type="button"
