@@ -26,17 +26,19 @@ def get_notifications(
     query = db.query(Notification)
 
     if current_user.role == "patient":
-        # Strict privacy enforcement: Patient can ONLY retrieve their own notifications
+        # Strict privacy enforcement: Patients can ONLY retrieve their own notifications
         query = query.filter(Notification.patient_id == current_user.id)
     elif current_user.role in ["admin", "staff"]:
-        if patient_id is not None:
-            query = query.filter(Notification.patient_id == patient_id)
-    elif current_user.role == "doctor":
-        # Doctors can only view notifications associated with appointments assigned to them or their patients
+        # Staff/Admin auditing: if patient_id is explicitly specified, filter to that patient
         if patient_id is not None:
             query = query.filter(Notification.patient_id == patient_id)
         else:
-            query = query.filter(Notification.doctor == (current_user.full_name or current_user.username))
+            query = query.filter(Notification.patient_id == current_user.id)
+    elif current_user.role == "doctor":
+        # Strict RBAC: Doctors ONLY receive notifications addressed directly to them (user ID match).
+        # Patient-facing notifications (booking alerts, waitlist confirmations, slot reclaims)
+        # belong exclusively to the patient and are never returned to doctor inboxes.
+        query = query.filter(Notification.patient_id == current_user.id)
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -93,12 +95,11 @@ def mark_all_read(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Mark all unread notifications as read for the logged-in patient.
+    Mark all unread notifications as read for the logged-in user.
     """
-    if current_user.role == "patient":
-        db.query(Notification).filter(
-            Notification.patient_id == current_user.id,
-            Notification.is_read == False,
-        ).update({"is_read": True})
-        db.commit()
+    db.query(Notification).filter(
+        Notification.patient_id == current_user.id,
+        Notification.is_read == False,
+    ).update({"is_read": True})
+    db.commit()
     return {"message": "All notifications marked as read."}

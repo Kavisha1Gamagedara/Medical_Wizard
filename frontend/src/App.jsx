@@ -121,7 +121,7 @@ export default function App() {
     };
   }, [fetchNotificationsFromApi]);
 
-  const userNotifications = user ? apiNotifications : [];
+  const userNotifications = user ? apiNotifications.filter(n => n.patient_id === user.id) : [];
   const unreadCount = userNotifications.filter(n => !n.is_read).length;
 
   const markAllNotifsRead = async () => {
@@ -482,7 +482,7 @@ export default function App() {
                   paddingBottom: '8px' 
                 }}>
                   <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                    {user?.role === 'patient' ? 'My Consultation Alerts' : 'Clinic Notifications'}
+                    {user?.role === 'patient' ? 'My Consultation Alerts' : user?.role === 'doctor' ? 'Clinician Alerts' : 'Clinic Notifications'}
                     {unreadCount > 0 && (
                       <span style={{ 
                         marginLeft: '6px', 
@@ -522,7 +522,13 @@ export default function App() {
                   </div>
                 ) : userNotifications.length === 0 ? (
                   <div style={{ padding: '18px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
-                    {user ? 'No notifications yet. Consultation reminders and waitlist slot alerts will appear here.' : 'Sign in to see your notifications.'}
+                    {user 
+                      ? (user.role === 'patient' 
+                          ? 'No notifications yet. Consultation reminders and waitlist slot alerts will appear here.'
+                          : user.role === 'doctor'
+                          ? 'No clinician alerts yet. Daily patient schedule updates and arrival notifications will appear here.'
+                          : 'No clinic notifications yet.') 
+                      : 'Sign in to see your notifications.'}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
@@ -564,7 +570,7 @@ export default function App() {
                             <p style={{ fontSize: '0.76rem', color: '#475569', margin: '3px 0 4px', lineHeight: 1.35 }}>
                               {notif.message}
                             </p>
-                            {isSlotAlert && (
+                            {isSlotAlert && user?.role === 'patient' && (
                               <button
                                 type="button"
                                 onClick={() => { setShowNotifications(false); handleNavClick('appointments'); }}
