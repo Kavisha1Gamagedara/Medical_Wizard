@@ -185,85 +185,155 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
             </div>
           )}
 
-          {/* Doctor Badge */}
+          {/* Doctor Profile Banner */}
           <div style={{ 
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(13, 148, 136, 0.15))',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px 18px',
+            background: 'linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%)',
+            border: '1px solid #bae6fd',
+            borderRadius: '14px',
+            padding: '16px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '20px'
+            marginBottom: '22px',
+            boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)'
           }}>
-            <div>
-              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-accent)', fontWeight: 700 }}>
-                Doctor Profile
-              </span>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {doctorName}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #0284c7, #0d9488)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 10px rgba(2, 132, 199, 0.25)'
+              }}>
+                <Stethoscope size={22} />
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                {targetDoctor?.specialization || 'Clinical Practitioner'} &bull; {targetDoctor?.email}
+              <div>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#0369a1', fontWeight: 800 }}>
+                  Doctor Profile
+                </span>
+                <div style={{ fontSize: '1.12rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                  {doctorName}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 500, marginTop: '2px' }}>
+                  {targetDoctor?.specialization || 'Clinical Specialist'} &bull; <span style={{ color: '#0284c7' }}>{targetDoctor?.email}</span>
+                </div>
               </div>
             </div>
-            <div className="badge-tag" style={{ margin: 0 }}>
-              <Sparkles size={13} />
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              background: '#ccfbf1',
+              color: '#0f766e',
+              border: '1px solid #99f6e4',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              boxShadow: '0 1px 3px rgba(15, 118, 110, 0.1)'
+            }}>
+              <Sparkles size={14} />
               Active Scheduling
             </div>
           </div>
 
-          {/* Configuration Form */}
+          {/* Configuration Form Card */}
           <form onSubmit={handleSubmit} style={{ 
-            background: 'var(--bg-input)', 
-            border: '1px solid var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
-            padding: '20px',
-            marginBottom: '28px'
+            background: '#ffffff', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: '16px', 
+            padding: '24px',
+            marginBottom: '28px',
+            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)'
           }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={16} color="var(--primary)" />
-              Set Available Times &amp; Daily Limits
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: '#e0f2fe',
+                  color: '#0284c7'
+                }}>
+                  <Plus size={16} strokeWidth={2.8} />
+                </span>
+                Set Available Times &amp; Daily Limits
+              </h3>
+            </div>
 
-            {/* Schedule Type Toggle */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            {/* Schedule Type Segmented Selector */}
+            <div style={{ 
+              display: 'flex', 
+              background: '#f1f5f9', 
+              padding: '4px', 
+              borderRadius: '12px', 
+              gap: '6px', 
+              marginBottom: '20px',
+              border: '1px solid #e2e8f0'
+            }}>
               <button
                 type="button"
-                className={`btn-cancel ${scheduleType === 'date' ? 'active' : ''}`}
                 style={{ 
                   flex: 1, 
-                  fontSize: '0.82rem', 
-                  padding: '8px 12px',
-                  background: scheduleType === 'date' ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-surface)',
-                  borderColor: scheduleType === 'date' ? 'var(--primary)' : 'var(--border-subtle)',
-                  color: scheduleType === 'date' ? 'var(--text-accent)' : 'var(--text-secondary)'
+                  fontSize: '0.85rem', 
+                  fontWeight: scheduleType === 'date' ? 700 : 500,
+                  padding: '9px 16px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: scheduleType === 'date' ? '#ffffff' : 'transparent',
+                  color: scheduleType === 'date' ? '#0284c7' : '#64748b',
+                  boxShadow: scheduleType === 'date' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
                 onClick={() => setScheduleType('date')}
               >
+                <Calendar size={15} />
                 Specific Calendar Date
               </button>
               <button
                 type="button"
-                className={`btn-cancel ${scheduleType === 'weekday' ? 'active' : ''}`}
                 style={{ 
                   flex: 1, 
-                  fontSize: '0.82rem', 
-                  padding: '8px 12px',
-                  background: scheduleType === 'weekday' ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-surface)',
-                  borderColor: scheduleType === 'weekday' ? 'var(--primary)' : 'var(--border-subtle)',
-                  color: scheduleType === 'weekday' ? 'var(--text-accent)' : 'var(--text-secondary)'
+                  fontSize: '0.85rem', 
+                  fontWeight: scheduleType === 'weekday' ? 700 : 500,
+                  padding: '9px 16px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: scheduleType === 'weekday' ? '#ffffff' : 'transparent',
+                  color: scheduleType === 'weekday' ? '#0284c7' : '#64748b',
+                  boxShadow: scheduleType === 'weekday' ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
                 onClick={() => setScheduleType('weekday')}
               >
+                <Clock size={15} />
                 Weekly Recurring Schedule
               </button>
             </div>
 
             {/* Date / Day selection */}
             {scheduleType === 'date' ? (
-              <div className="form-group">
-                <label className="form-label" htmlFor="avail-date">Specific Date *</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" htmlFor="avail-date" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Select Date *
+                </label>
                 <div className="input-with-icon">
                   <input
                     id="avail-date"
@@ -272,20 +342,37 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                     min={getTodayStr()}
                     value={specificDate}
                     onChange={(e) => setSpecificDate(e.target.value)}
-                    style={{ colorScheme: 'dark' }}
+                    style={{ 
+                      colorScheme: 'light', 
+                      background: '#ffffff', 
+                      borderColor: '#cbd5e1', 
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      borderRadius: '10px',
+                      padding: '11px 14px 11px 40px'
+                    }}
                     required
                   />
-                  <Calendar size={18} className="input-icon" />
+                  <Calendar size={18} className="input-icon" style={{ color: '#0284c7' }} />
                 </div>
               </div>
             ) : (
-              <div className="form-group">
-                <label className="form-label" htmlFor="avail-day">Recurring Day of Week *</label>
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label className="form-label" htmlFor="avail-day" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Recurring Day of Week *
+                </label>
                 <select
                   id="avail-day"
                   className="form-input role-select"
                   value={dayOfWeek}
                   onChange={(e) => setDayOfWeek(e.target.value)}
+                  style={{ 
+                    background: '#ffffff', 
+                    borderColor: '#cbd5e1', 
+                    color: '#0f172a',
+                    fontWeight: 600,
+                    borderRadius: '10px'
+                  }}
                   required
                 >
                   {WEEKDAYS.map((day) => (
@@ -297,10 +384,100 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
               </div>
             )}
 
+            {/* Interactive Availability Toggle Card */}
+            <div style={{
+              background: isAvailable ? '#f0fdf4' : '#fffbeb',
+              border: `1.5px solid ${isAvailable ? '#86efac' : '#fde68a'}`,
+              borderRadius: '12px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              transition: 'all 0.25s ease'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: isAvailable ? '#14532d' : '#78350f' }}>
+                    {scheduleType === 'date' ? 'Date Availability Status' : 'Schedule Day Status'}
+                  </span>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: isAvailable ? '#bbf7d0' : '#fef3c7',
+                    color: isAvailable ? '#15803d' : '#b45309'
+                  }}>
+                    {isAvailable ? 'AVAILABLE FOR CONSULTATIONS' : 'DAY OFF / OFF-DUTY'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: isAvailable ? '#166534' : '#92400e', lineHeight: 1.4 }}>
+                  {isAvailable 
+                    ? 'Doctor is marked ON-DUTY. Patients can book slots according to the working hours below.' 
+                    : 'Doctor is marked OFF-DUTY / UNAVAILABLE. Consultation bookings will be disabled for this date.'}
+                </div>
+              </div>
+
+              {/* Toggle Switch Component */}
+              <button
+                type="button"
+                id="toggle-doctor-available"
+                role="switch"
+                aria-checked={isAvailable}
+                onClick={() => setIsAvailable(!isAvailable)}
+                style={{
+                  position: 'relative',
+                  width: '56px',
+                  height: '30px',
+                  borderRadius: '999px',
+                  background: isAvailable ? '#10b981' : '#cbd5e1',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '3px',
+                  transition: 'background-color 0.25s ease',
+                  flexShrink: 0,
+                  outline: 'none',
+                  boxShadow: isAvailable ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none'
+                }}
+                title={isAvailable ? 'Click to mark as Day Off / Unavailable' : 'Click to mark as Available'}
+              >
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
+                  transform: isAvailable ? 'translateX(26px)' : 'translateX(0)',
+                  transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px'
+                }}>
+                  {isAvailable ? (
+                    <span style={{ color: '#10b981', fontWeight: 900, lineHeight: 1 }}>✓</span>
+                  ) : (
+                    <span style={{ color: '#94a3b8', fontWeight: 900, lineHeight: 1 }}>✕</span>
+                  )}
+                </div>
+              </button>
+            </div>
+
             {/* Working Hours: Start & End */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '16px', 
+              marginBottom: '16px',
+              opacity: isAvailable ? 1 : 0.65,
+              transition: 'opacity 0.2s ease'
+            }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="avail-start">Available Start Time *</label>
+                <label className="form-label" htmlFor="avail-start" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Available Start Time *
+                </label>
                 <div className="input-with-icon">
                   <input
                     id="avail-start"
@@ -308,15 +485,25 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                     className="form-input"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    style={{ colorScheme: 'dark' }}
+                    style={{ 
+                      colorScheme: 'light', 
+                      background: '#ffffff', 
+                      borderColor: '#cbd5e1', 
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      borderRadius: '10px',
+                      padding: '11px 14px 11px 40px'
+                    }}
                     required
                   />
-                  <Clock size={18} className="input-icon" />
+                  <Clock size={18} className="input-icon" style={{ color: '#0284c7' }} />
                 </div>
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="avail-end">Available End Time *</label>
+                <label className="form-label" htmlFor="avail-end" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Available End Time *
+                </label>
                 <div className="input-with-icon">
                   <input
                     id="avail-end"
@@ -324,19 +511,34 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                     className="form-input"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    style={{ colorScheme: 'dark' }}
+                    style={{ 
+                      colorScheme: 'light', 
+                      background: '#ffffff', 
+                      borderColor: '#cbd5e1', 
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      borderRadius: '10px',
+                      padding: '11px 14px 11px 40px'
+                    }}
                     required
                   />
-                  <Clock size={18} className="input-icon" />
+                  <Clock size={18} className="input-icon" style={{ color: '#0284c7' }} />
                 </div>
               </div>
             </div>
 
             {/* Max Appointments Capacity & Slot Duration */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '16px', 
+              marginBottom: '16px',
+              opacity: isAvailable ? 1 : 0.65,
+              transition: 'opacity 0.2s ease'
+            }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="avail-max-apts">
-                  Max Appointments for this Date *
+                <label className="form-label" htmlFor="avail-max-apts" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Max Patient Appointments *
                 </label>
                 <div className="input-with-icon">
                   <input
@@ -347,52 +549,55 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                     className="form-input"
                     value={maxAppointments}
                     onChange={(e) => setMaxAppointments(e.target.value)}
+                    style={{ 
+                      background: '#ffffff', 
+                      borderColor: '#cbd5e1', 
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      borderRadius: '10px',
+                      padding: '11px 14px 11px 40px'
+                    }}
                     required
                   />
-                  <Users size={18} className="input-icon" />
+                  <Users size={18} className="input-icon" style={{ color: '#0284c7' }} />
                 </div>
-                <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
-                  Doctor's daily capacity limit before marked as fully booked.
+                <small style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
+                  Daily capacity limit before marked fully booked.
                 </small>
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="avail-slot-duration">
-                  Consultation Slot Duration
+                <label className="form-label" htmlFor="avail-slot-duration" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Slot Duration
                 </label>
                 <select
                   id="avail-slot-duration"
                   className="form-input role-select"
                   value={slotDuration}
                   onChange={(e) => setSlotDuration(e.target.value)}
+                  style={{ 
+                    background: '#ffffff', 
+                    borderColor: '#cbd5e1', 
+                    color: '#0f172a',
+                    fontWeight: 600,
+                    borderRadius: '10px'
+                  }}
                 >
                   <option value="15">15 Minutes</option>
                   <option value="30">30 Minutes (Standard)</option>
                   <option value="45">45 Minutes</option>
                   <option value="60">60 Minutes (Comprehensive)</option>
                 </select>
-                <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
+                <small style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
                   Interval between booking options.
                 </small>
               </div>
             </div>
 
-            {/* Status toggle & Notes */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', marginTop: '6px' }}>
-              <input
-                id="avail-active"
-                type="checkbox"
-                checked={isAvailable}
-                onChange={(e) => setIsAvailable(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-              />
-              <label htmlFor="avail-active" style={{ fontSize: '0.85rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>
-                Doctor is Available for Consultations (Uncheck to mark this day off / unavailable)
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label" htmlFor="avail-notes" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>
+                Schedule Notes / Details (Optional)
               </label>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="avail-notes">Schedule Notes / Details (Optional)</label>
               <input
                 id="avail-notes"
                 type="text"
@@ -400,25 +605,47 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                 placeholder="e.g. Morning clinic only; afternoon surgery rounds"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                style={{ 
+                  background: '#ffffff', 
+                  borderColor: '#cbd5e1', 
+                  color: '#0f172a',
+                  borderRadius: '10px',
+                  padding: '11px 14px'
+                }}
               />
             </div>
 
             <button
               type="submit"
-              className="btn-submit"
-              style={{ width: '100%', margin: 0 }}
+              style={{
+                width: '100%',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0d9488 100%)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.28)',
+                transition: 'all 0.2s ease'
+              }}
               disabled={saving}
               id="btn-save-availability"
             >
               {saving ? (
                 <>
-                  <span className="spinner" />
+                  <span className="spinner" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff' }} />
                   <span>Saving Schedule...</span>
                 </>
               ) : (
                 <>
-                  <CalendarCheck size={16} />
-                  <span>Save Availability &amp; Daily Limit</span>
+                  <CalendarCheck size={18} />
+                  <span>Save Availability &amp; Limits</span>
                 </>
               )}
             </button>
@@ -426,22 +653,34 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
 
           {/* Configured Rules List */}
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Configured Schedule Rules ({availabilities.length})</span>
-              {loading && <span className="spinner" style={{ width: '14px', height: '14px' }} />}
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Configured Schedule Rules
+                <span style={{ 
+                  background: '#e0f2fe', 
+                  color: '#0369a1', 
+                  fontSize: '0.78rem', 
+                  fontWeight: 800, 
+                  padding: '2px 10px', 
+                  borderRadius: '999px' 
+                }}>
+                  {availabilities.length}
+                </span>
+              </h3>
+              {loading && <span className="spinner" style={{ width: '16px', height: '16px' }} />}
+            </div>
 
             {availabilities.length === 0 ? (
               <div style={{ 
                 padding: '24px', 
                 textAlign: 'center', 
-                background: 'var(--bg-surface)', 
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-secondary)',
+                background: '#f8fafc', 
+                borderRadius: '14px',
+                color: '#64748b',
                 fontSize: '0.85rem',
-                border: '1px dashed var(--border-subtle)'
+                border: '1.5px dashed #cbd5e1'
               }}>
-                <Info size={20} style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+                <Info size={22} style={{ margin: '0 auto 8px', color: '#0284c7' }} />
                 No custom schedule rules configured yet. Standard clinic default (09:00 AM - 05:00 PM, max 10 appointments) is currently active.
               </div>
             ) : (
@@ -450,46 +689,48 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                   <div
                     key={rule.id}
                     style={{
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-md)',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
                       padding: '14px 18px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      gap: '14px'
+                      gap: '14px',
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.96rem' }}>
                           {rule.specific_date ? `Date: ${rule.specific_date}` : `Weekly: ${rule.day_of_week === 'ALL' ? 'Every Day' : rule.day_of_week}`}
                         </span>
                         <span style={{
                           fontSize: '0.72rem',
-                          fontWeight: 700,
-                          padding: '2px 8px',
+                          fontWeight: 800,
+                          padding: '3px 9px',
                           borderRadius: '6px',
-                          background: rule.is_available ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                          color: rule.is_available ? 'var(--emerald-accent)' : '#f87171'
+                          background: rule.is_available ? '#dcfce7' : '#fee2e2',
+                          color: rule.is_available ? '#15803d' : '#b91c1c',
+                          letterSpacing: '0.02em'
                         }}>
                           {rule.is_available ? 'Available' : 'Off-Duty'}
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                        <span>
-                          <Clock size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-1px' }} />
+                      <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={14} style={{ color: '#0284c7' }} />
                           {formatTimeLabel(rule.start_time)} - {formatTimeLabel(rule.end_time)} ({rule.slot_duration_minutes}m slots)
                         </span>
-                        <span style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
-                          <Users size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-1px' }} />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0369a1', fontWeight: 600 }}>
+                          <Users size={14} />
                           Max {rule.max_appointments} appointments
                         </span>
                       </div>
 
                       {rule.notes && (
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '4px', fontStyle: 'italic' }}>
                           Note: {rule.notes}
                         </div>
                       )}
@@ -497,8 +738,20 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
 
                     <button
                       type="button"
-                      className="btn-delete"
-                      style={{ padding: '7px 12px', fontSize: '0.78rem' }}
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        border: '1px solid #fee2e2',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
                       onClick={() => handleDelete(rule.id)}
                       title="Delete this schedule rule"
                     >
@@ -512,12 +765,27 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
           </div>
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ 
+          background: '#f8fafc', 
+          borderTop: '1px solid #e2e8f0',
+          padding: '16px 24px',
+          display: 'flex',
+          justifyContent: 'flex-end'
+        }}>
           <button
             type="button"
-            className="btn-submit"
             onClick={onClose}
-            style={{ width: 'auto', padding: '9px 24px', margin: 0 }}
+            style={{ 
+              padding: '10px 24px', 
+              background: '#0f172a',
+              color: '#ffffff',
+              borderRadius: '10px',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)'
+            }}
           >
             Done
           </button>
