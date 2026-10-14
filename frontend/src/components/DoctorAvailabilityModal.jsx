@@ -110,6 +110,7 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
       setTimeout(() => setSuccessMsg(''), 3000);
       await fetchSchedules();
       if (onScheduleUpdated) onScheduleUpdated();
+      window.dispatchEvent(new CustomEvent('mw_schedule_updated', { detail: { doctorName, doctorId } }));
     } catch (err) {
       setErrorMsg(err.message || 'Unable to save availability. Please try again.');
     } finally {
@@ -125,6 +126,7 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
       setSuccessMsg('Availability rule removed.');
       setTimeout(() => setSuccessMsg(''), 3000);
       if (onScheduleUpdated) onScheduleUpdated();
+      window.dispatchEvent(new CustomEvent('mw_schedule_updated', { detail: { doctorName, doctorId } }));
     } catch (err) {
       setErrorMsg(err.message || 'Unable to delete rule.');
     }

@@ -105,6 +105,10 @@ export const doctorService = {
     return await apiRequest(`/api/v1/doctors${queryString}`);
   },
 
+  async getAllDoctors() {
+    return await this.getDoctors();
+  },
+
   async getDoctorSchedule(doctorIdentifier, dateStr) {
     return await apiRequest(`/api/v1/doctors/${encodeURIComponent(doctorIdentifier)}/schedule?date=${encodeURIComponent(dateStr)}`);
   },
@@ -226,6 +230,51 @@ export const userService = {
     if (search && search.trim()) query.append('search', search.trim());
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return await apiRequest(`/api/v1/users/patients${queryString}`);
+  },
+};
+
+export const notificationService = {
+  async getNotifications(patientId = null) {
+    const query = new URLSearchParams();
+    if (patientId) query.append('patient_id', patientId);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/notifications${qs}`);
+  },
+
+  async createNotification(data) {
+    return await apiRequest('/api/v1/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async markAllRead() {
+    return await apiRequest('/api/v1/notifications/mark-all-read', {
+      method: 'PUT',
+    });
+  },
+};
+
+export const waitlistService = {
+  async getWaitlist(params = {}) {
+    const query = new URLSearchParams();
+    if (params.doctor) query.append('doctor', params.doctor);
+    if (params.preferred_date) query.append('preferred_date', params.preferred_date);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return await apiRequest(`/api/v1/waitlist${qs}`);
+  },
+
+  async joinWaitlist(data) {
+    return await apiRequest('/api/v1/waitlist', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async cancelWaitlist(id) {
+    return await apiRequest(`/api/v1/waitlist/${id}/cancel`, {
+      method: 'POST',
+    });
   },
 };
 
