@@ -3175,10 +3175,18 @@ body {
 }
 
 .citycare-app-root .modal-container {
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-accent: #0284c7;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-input: #f8fafc;
+  --border-subtle: #e2e8f0;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
   border-radius: 24px;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
   color: #0f172a;
 }
 
@@ -3197,19 +3205,19 @@ body {
 
 .citycare-app-root .modal-close-btn {
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  border: 1px solid #cbd5e1;
+  color: #475569;
   border-radius: 10px;
 }
 
 .citycare-app-root .modal-close-btn:hover {
   background: #fee2e2;
-  color: #ef4444;
-  border-color: #fecdd3;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
 .citycare-app-root .modal-body {
-  color: #334155;
+  color: #0f172a;
   background: #ffffff;
   padding: 24px 26px;
 }
@@ -3222,20 +3230,27 @@ body {
 
 .citycare-app-root .modal-container .form-label,
 .citycare-app-root .form-label {
-  color: #334155;
-  font-weight: 700;
-  font-size: 0.84rem;
+  color: #0f172a;
+  font-weight: 750;
+  font-size: 0.85rem;
   margin-bottom: 6px;
 }
 
 .citycare-app-root .modal-container .form-input,
 .citycare-app-root .modal-container select,
 .citycare-app-root .modal-container textarea {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
   color: #0f172a;
-  border-radius: 12px;
-  font-size: 0.88rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.citycare-app-root .modal-container .form-input::placeholder,
+.citycare-app-root .modal-container textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 .citycare-app-root .modal-container .form-input:focus,
@@ -3244,7 +3259,7 @@ body {
   border-color: #0284c7;
   background: #ffffff;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
 }
 
 /* Status Badges */

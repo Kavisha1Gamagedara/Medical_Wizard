@@ -510,9 +510,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               <Calendar size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Book Clinical Appointment</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                Schedule a consultation with {doctorName}
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>Book Clinical Appointment</h2>
+              <p style={{ color: '#475569', fontSize: '0.84rem', fontWeight: 500, marginTop: '2px' }}>
+                Schedule a consultation with <strong style={{ color: '#0f172a' }}>{doctorName}</strong>
               </p>
             </div>
           </div>
@@ -533,63 +533,64 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               width: '64px', 
               height: '64px', 
               borderRadius: '50%', 
-              background: 'rgba(16, 185, 129, 0.15)', 
-              color: 'var(--emerald-accent)',
+              background: '#dcfce7', 
+              color: '#15803d',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 18px',
-              border: '2px solid rgba(16, 185, 129, 0.4)'
+              border: '2px solid #86efac'
             }}>
               <CheckCircle2 size={36} />
             </div>
 
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', color: '#0f172a' }}>
               Appointment Confirmed!
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '24px' }}>
               Your appointment request has been scheduled into the Medical Wizard clinical calendar.
             </p>
 
             <div style={{ 
-              background: 'var(--bg-input)', 
-              borderRadius: 'var(--radius-md)', 
+              background: '#f8fafc', 
+              borderRadius: '16px', 
               padding: '20px', 
               textAlign: 'left',
-              border: '1px solid var(--border-subtle)',
+              border: '1.5px solid #e2e8f0',
               marginBottom: '24px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Booking Ref</span>
-                <span style={{ fontWeight: 800, color: 'var(--text-accent)' }}>#APT-{bookingConfirmed.id}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Booking Status</span>
+                <span style={{ fontWeight: 800, color: '#0284c7' }}>Confirmed</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Patient Name</span>
-                <span style={{ fontWeight: 600 }}>{bookingConfirmed.patient_name}</span>
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Patient Name</span>
+                <span style={{ fontWeight: 750, color: '#0f172a' }}>{bookingConfirmed.patient_name}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Consulting Doctor</span>
-                <span style={{ fontWeight: 600 }}>{bookingConfirmed.doctor}</span>
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Consulting Doctor</span>
+                <span style={{ fontWeight: 750, color: '#0f172a' }}>{bookingConfirmed.doctor}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Appointment Date & Time</span>
-                <span style={{ fontWeight: 600, color: '#38bdf8' }}>
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Appointment Date & Time</span>
+                <span style={{ fontWeight: 750, color: '#0284c7' }}>
                   {new Date(bookingConfirmed.appointment_datetime).toLocaleString()}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Check-in Code</span>
-                <span style={{ fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.08em' }}>
-                  {bookingConfirmed.verification_code || `#APT-${bookingConfirmed.id}`}
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Check-in Code</span>
+                <span style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.08em' }}>
+                  {bookingConfirmed.verification_code || 'MW-CONFIRMED'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Status</span>
+                <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>Status</span>
                 <span style={{ 
-                  fontWeight: 700, 
-                  color: 'var(--emerald-accent)',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  padding: '2px 8px',
+                  fontWeight: 800, 
+                  color: '#15803d',
+                  background: '#dcfce7',
+                  border: '1px solid #86efac',
+                  padding: '3px 10px',
                   borderRadius: '6px',
                   fontSize: '0.78rem'
                 }}>
@@ -606,12 +607,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 style={{ 
                   flex: 1.2, 
                   margin: 0,
-                  background: 'linear-gradient(135deg, #06b6d4, #0d9488)',
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)'
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '10px 18px'
                 }}
               >
                 <QrCode size={16} />
@@ -621,7 +626,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 type="button" 
                 className="btn-cancel" 
                 onClick={handleClose}
-                style={{ flex: 1 }}
+                style={{ flex: 1, background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 750, borderRadius: '10px' }}
               >
                 Done &amp; Return
               </button>
@@ -632,31 +637,45 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
           <form onSubmit={handleSubmit} className="modal-body">
             {/* Selected Doctor Summary Card */}
             <div style={{ 
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(13, 148, 136, 0.15))',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '14px 18px',
+              background: 'linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%)',
+              border: '1.5px solid #bae6fd',
+              borderRadius: '16px',
+              padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)'
             }}>
               <div>
-                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-accent)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#0284c7', fontWeight: 800, display: 'block', marginBottom: '2px' }}>
                   Selected Clinician
                 </span>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#0f172a', letterSpacing: '-0.01em' }}>
                   {doctorName}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 600, marginTop: '2px' }}>
                   {doctor.email} &bull; {doctor.phone_number || 'Clinic line'}
                 </div>
               </div>
 
               {doctor.specialization && (
-                <span className="role-pill doctor" style={{ background: 'rgba(6, 182, 212, 0.25)', borderColor: 'var(--primary)' }}>
-                  <Stethoscope size={13} style={{ marginRight: '4px' }} />
-                  {doctor.specialization}
+                <span style={{
+                  background: '#ffffff',
+                  color: '#0369a1',
+                  border: '1.5px solid #7dd3fc',
+                  fontWeight: 750,
+                  fontSize: '0.78rem',
+                  padding: '5px 14px',
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 5px rgba(2, 132, 199, 0.1)',
+                  letterSpacing: '0.03em'
+                }}>
+                  <Stethoscope size={14} style={{ color: '#0284c7' }} />
+                  <span>{doctor.specialization}</span>
                 </span>
               )}
             </div>
@@ -669,16 +688,18 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: '8px',
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  borderColor: 'rgba(245, 158, 11, 0.35)'
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '14px 16px'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#f59e0b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#b45309' }}>
                   <Lock size={16} />
                   <span>Sign In Required to Book</span>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.45, color: 'var(--text-secondary)' }}>
-                  Only logged-in patients and authorized clinical staff can book appointments. Please sign in or register a patient account to reserve your appointment with {doctorName}.
+                <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.45, color: '#334155' }}>
+                  Only logged-in patients and authorized clinical staff can book appointments. Please sign in or register a patient account to reserve your appointment with <strong style={{ color: '#0f172a' }}>{doctorName}</strong>.
                 </p>
                 {onNavigate && (
                   <button
@@ -687,12 +708,18 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     style={{ 
                       width: 'auto', 
                       alignSelf: 'flex-start', 
-                      padding: '7px 16px', 
-                      fontSize: '0.82rem', 
+                      padding: '8px 18px', 
+                      fontSize: '0.84rem', 
+                      fontWeight: 750,
                       marginTop: '4px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px'
+                      gap: '6px',
+                      background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer'
                     }}
                     onClick={() => {
                       handleClose();
@@ -714,20 +741,37 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '10px',
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  borderColor: 'rgba(245, 158, 11, 0.35)'
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '12px 16px'
                 }}
               >
-                <AlertCircle size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.84rem', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#f59e0b' }}>Clinician Notice:</strong> Doctor accounts cannot book appointments. Only patients and authorized clinic staff can schedule consultations.
+                <AlertCircle size={18} color="#b45309" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.86rem', lineHeight: 1.4, color: '#334155' }}>
+                  <strong style={{ color: '#b45309' }}>Clinician Notice:</strong> Doctor accounts cannot book appointments. Only patients and authorized clinic staff can schedule consultations.
                 </span>
               </div>
             )}
 
             {errorMsg && (
-              <div className="alert-box alert-danger">
-                <AlertCircle size={18} />
+              <div 
+                className="alert-box alert-danger"
+                style={{
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  color: '#b91c1c',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: 650,
+                  fontSize: '0.88rem'
+                }}
+              >
+                <AlertCircle size={18} color="#dc2626" />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -736,11 +780,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
             {isStaffOrAdmin && (
               <div 
                 style={{
-                  background: isExistingPatient 
-                    ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08))' 
-                    : 'rgba(255, 255, 255, 0.03)',
-                  border: `1px solid ${isExistingPatient ? 'rgba(6, 182, 212, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
-                  borderRadius: 'var(--radius-md)',
+                  background: isExistingPatient ? '#eff6ff' : '#f8fafc',
+                  border: `1.5px solid ${isExistingPatient ? '#93c5fd' : '#cbd5e1'}`,
+                  borderRadius: '12px',
                   padding: '12px 16px',
                   marginBottom: '16px',
                   display: 'flex',
@@ -759,9 +801,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     cursor: 'pointer',
                     userSelect: 'none',
                     margin: 0,
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
-                    color: isExistingPatient ? 'var(--text-primary)' : 'var(--text-secondary)'
+                    fontWeight: 750,
+                    fontSize: '0.9rem',
+                    color: '#0f172a'
                   }}
                 >
                   <input
@@ -783,7 +825,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     style={{
                       width: '18px',
                       height: '18px',
-                      accentColor: 'var(--primary)',
+                      accentColor: '#0284c7',
                       cursor: 'pointer'
                     }}
                   />
@@ -791,12 +833,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 </label>
                 <span 
                   style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '3px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 750,
+                    padding: '3px 12px',
                     borderRadius: '20px',
-                    background: isExistingPatient ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                    color: isExistingPatient ? 'var(--text-accent)' : 'var(--text-muted)',
+                    background: isExistingPatient ? '#dbeafe' : '#e2e8f0',
+                    color: isExistingPatient ? '#1d4ed8' : '#475569',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em'
                   }}
@@ -813,17 +855,17 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   /* Selected Patient Details Card */
                   <div 
                     style={{
-                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08))',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
-                      borderRadius: 'var(--radius-md)',
+                      background: '#f0fdf4',
+                      border: '1.5px solid #86efac',
+                      borderRadius: '14px',
                       padding: '14px 16px',
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <UserCheck size={18} color="#10b981" />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <UserCheck size={18} color="#15803d" />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           Verified Patient Details Linked
                         </span>
                       </div>
@@ -836,23 +878,25 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           setShowPatientDropdown(true);
                         }}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          padding: '4px 10px',
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '8px',
+                          color: '#0f172a',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          padding: '4px 12px',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                          e.currentTarget.style.background = '#fee2e2';
+                          e.currentTarget.style.borderColor = '#fca5a5';
+                          e.currentTarget.style.color = '#dc2626';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = '#cbd5e1';
+                          e.currentTarget.style.color = '#0f172a';
                         }}
                       >
                         Change Patient
@@ -865,7 +909,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           width: '36px',
                           height: '36px',
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                          background: 'linear-gradient(135deg, #0284c7, #10b981)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -877,39 +921,39 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           {(selectedPatient.full_name || selectedPatient.username || 'P').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>
                             Patient Name
                           </span>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
                             {selectedPatient.full_name || selectedPatient.username}
                           </span>
                         </div>
                       </div>
 
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>
                           Email Address
                         </span>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ fontSize: '0.86rem', color: '#1e293b', fontWeight: 600 }}>
                           {selectedPatient.email || 'N/A'}
                         </span>
                       </div>
 
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>
                           Contact Phone
                         </span>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ fontSize: '0.86rem', color: '#1e293b', fontWeight: 600 }}>
                           {selectedPatient.phone_number || 'N/A'}
                         </span>
                       </div>
 
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
-                          Account Identifier
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Patient Account
                         </span>
-                        <span style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: 'var(--text-accent)' }}>
-                          ID #{selectedPatient.id} (@{selectedPatient.username})
+                        <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0284c7' }}>
+                          @{selectedPatient.username}
                         </span>
                       </div>
                     </div>
@@ -917,7 +961,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 ) : (
                   /* Patient Search Query Input with Suggestion Dropdown */
                   <div className="form-group" style={{ position: 'relative', marginBottom: 0 }} ref={dropdownRef}>
-                    <label className="form-label" htmlFor="book-patient-search">
+                    <label className="form-label" htmlFor="book-patient-search" style={{ color: '#0f172a', fontWeight: 750, fontSize: '0.85rem' }}>
                       Search Patient (by Name or Email) *
                     </label>
                     <div className="input-with-icon" style={{ position: 'relative' }}>
@@ -937,9 +981,17 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           if (e.key === 'Enter') e.preventDefault();
                         }}
                         autoComplete="off"
+                        style={{
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          color: '#0f172a',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          borderRadius: '10px'
+                        }}
                         required
                       />
-                      <Search size={18} className="input-icon" />
+                      <Search size={18} className="input-icon" style={{ color: '#64748b' }} />
                       {searchingPatients && (
                         <span style={{
                           position: 'absolute',
@@ -947,8 +999,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           top: '50%',
                           transform: 'translateY(-50%)',
                           fontSize: '0.74rem',
-                          color: 'var(--text-accent)',
-                          fontWeight: 600
+                          color: '#0284c7',
+                          fontWeight: 700
                         }}>
                           Searching...
                         </span>
@@ -964,10 +1016,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                           left: 0,
                           right: 0,
                           marginTop: '6px',
-                          background: '#151c2c',
-                          border: '1px solid rgba(6, 182, 212, 0.35)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65)',
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '12px',
+                          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.15)',
                           maxHeight: '260px',
                           overflowY: 'auto',
                           zIndex: 100,
@@ -975,17 +1027,17 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                         }}
                       >
                         {searchingPatients ? (
-                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.84rem', color: '#64748b', fontWeight: 600 }}>
                             Searching registered patients...
                           </div>
                         ) : patientSearchResults.length > 0 ? (
                           <div>
                             <div style={{ 
                               padding: '6px 10px', 
-                              fontSize: '0.7rem', 
-                              color: 'var(--text-muted)', 
+                              fontSize: '0.72rem', 
+                              color: '#64748b', 
                               textTransform: 'uppercase', 
-                              fontWeight: 700,
+                              fontWeight: 800,
                               letterSpacing: '0.04em' 
                             }}>
                               Matching Registered Patients ({patientSearchResults.length})
@@ -996,15 +1048,15 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                                 onClick={() => handleSelectExistingPatient(pat)}
                                 style={{
                                   padding: '10px 12px',
-                                  borderRadius: 'var(--radius-sm)',
+                                  borderRadius: '8px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   cursor: 'pointer',
                                   transition: 'background 0.15s ease',
-                                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
+                                  borderBottom: '1px solid #f1f5f9'
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6, 182, 212, 0.12)'}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f9ff'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1012,35 +1064,35 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                                     width: '32px',
                                     height: '32px',
                                     borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(16, 185, 129, 0.3))',
-                                    border: '1px solid rgba(6, 182, 212, 0.4)',
+                                    background: 'linear-gradient(135deg, #e0f2fe, #dcfce7)',
+                                    border: '1.5px solid #bae6fd',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 700,
-                                    color: 'var(--text-primary)'
+                                    fontSize: '0.82rem',
+                                    fontWeight: 800,
+                                    color: '#0284c7'
                                   }}>
                                     {(pat.full_name || pat.username || 'P').charAt(0).toUpperCase()}
                                   </div>
                                   <div>
-                                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    <div style={{ fontSize: '0.88rem', fontWeight: 750, color: '#0f172a' }}>
                                       {pat.full_name || pat.username}
                                     </div>
-                                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
                                       {pat.email} {pat.phone_number ? `• ${pat.phone_number}` : ''}
                                     </div>
                                   </div>
                                 </div>
 
                                 <span style={{
-                                  fontSize: '0.72rem',
-                                  padding: '4px 10px',
+                                  fontSize: '0.74rem',
+                                  padding: '4px 12px',
                                   borderRadius: '12px',
-                                  background: 'rgba(6, 182, 212, 0.18)',
-                                  border: '1px solid rgba(6, 182, 212, 0.3)',
-                                  color: 'var(--text-accent)',
-                                  fontWeight: 600
+                                  background: '#e0f2fe',
+                                  border: '1px solid #7dd3fc',
+                                  color: '#0284c7',
+                                  fontWeight: 750
                                 }}>
                                   Select Patient
                                 </span>
@@ -1048,7 +1100,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                             ))}
                           </div>
                         ) : (
-                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                          <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.84rem', color: '#64748b', fontWeight: 500 }}>
                             {patientSearchQuery.trim()
                               ? `No registered patients found matching "${patientSearchQuery}"`
                               : 'Type patient full name or email address to view suggestions'}
@@ -1061,8 +1113,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               </div>
             ) : (
               /* Regular / Guest Walk-in Patient Full Name Input */
-              <div className="form-group">
-                <label className="form-label" htmlFor="book-patient-name">Patient Full Name *</label>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label" htmlFor="book-patient-name" style={{ color: '#0f172a', fontWeight: 750, fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
+                  Patient Full Name *
+                </label>
                 <div className="input-with-icon">
                   <input
                     id="book-patient-name"
@@ -1071,33 +1125,42 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     placeholder="e.g. John Doe or Jane Smith"
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
+                    style={{
+                      background: '#ffffff',
+                      border: '1.5px solid #cbd5e1',
+                      color: '#0f172a',
+                      fontWeight: 600,
+                      fontSize: '0.92rem',
+                      paddingLeft: '40px',
+                      borderRadius: '10px'
+                    }}
                     required
                   />
-                  <User size={18} className="input-icon" />
+                  <User size={18} className="input-icon" style={{ color: '#64748b' }} />
                 </div>
               </div>
             )}
 
             {/* Step 1: Consultation Date Picker with Visible Calendar & Shortcuts */}
-            <div className="form-group" style={{ marginBottom: '14px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label className="form-label" htmlFor="book-date" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
+                <label className="form-label" htmlFor="book-date" style={{ margin: 0, fontWeight: 750, color: '#0f172a', fontSize: '0.85rem' }}>
                   Appointment Date *
                 </label>
                 <button
                   type="button"
                   onClick={handleOpenCalendar}
                   style={{
-                    background: 'rgba(6, 182, 212, 0.12)',
-                    border: '1px solid rgba(6, 182, 212, 0.35)',
-                    color: 'var(--primary)',
+                    background: '#e0f2fe',
+                    border: '1.5px solid #7dd3fc',
+                    color: '#0284c7',
                     fontSize: '0.76rem',
-                    fontWeight: 700,
+                    fontWeight: 750,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '5px',
-                    padding: '3px 10px',
+                    padding: '4px 12px',
                     borderRadius: '8px',
                     transition: 'all 0.15s ease'
                   }}
@@ -1120,24 +1183,29 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   onClick={handleOpenCalendar}
                   style={{ 
                     colorScheme: 'light',
-                    fontWeight: 700,
+                    fontWeight: 750,
                     fontSize: '0.96rem',
                     cursor: 'pointer',
-                    width: '100%'
+                    width: '100%',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#0f172a',
+                    paddingLeft: '40px',
+                    borderRadius: '10px'
                   }}
                   required
                 />
                 <Calendar 
                   size={18} 
                   className="input-icon" 
-                  style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                  style={{ color: '#0284c7', cursor: 'pointer' }}
                   onClick={handleOpenCalendar}
                 />
               </div>
 
               {/* Quick Date Shortcut Pills */}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '2px' }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 750, marginRight: '4px' }}>
                   Quick Dates:
                 </span>
                 {[
@@ -1153,14 +1221,15 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                       type="button"
                       onClick={() => handleSelectDate(shortcut.date)}
                       style={{
-                        padding: '3px 10px',
-                        fontSize: '0.74rem',
-                        borderRadius: '14px',
-                        border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
-                        background: isSelected ? 'rgba(6, 182, 212, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-                        color: isSelected ? 'var(--text-accent)' : 'var(--text-secondary)',
-                        fontWeight: isSelected ? 700 : 500,
+                        padding: '5px 13px',
+                        fontSize: '0.76rem',
+                        borderRadius: '16px',
+                        border: isSelected ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
+                        background: isSelected ? '#0284c7' : '#ffffff',
+                        color: isSelected ? '#ffffff' : '#1e293b',
+                        fontWeight: isSelected ? 800 : 650,
                         cursor: 'pointer',
+                        boxShadow: isSelected ? '0 2px 6px rgba(2, 132, 199, 0.25)' : '0 1px 2px rgba(0,0,0,0.03)',
                         transition: 'all 0.15s ease'
                       }}
                     >
@@ -1177,31 +1246,32 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               {daySchedule && (
                 <div style={{
                   background: (daySchedule.is_capacity_reached || !daySchedule.is_available)
-                    ? 'rgba(239, 68, 68, 0.1)' 
-                    : 'rgba(6, 182, 212, 0.08)',
-                  border: `1px solid ${(daySchedule.is_capacity_reached || !daySchedule.is_available) ? 'rgba(239, 68, 68, 0.35)' : 'rgba(6, 182, 212, 0.25)'}`,
-                  borderRadius: 'var(--radius-md)',
+                    ? '#fef2f2' 
+                    : '#f0f9ff',
+                  border: `1.5px solid ${(daySchedule.is_capacity_reached || !daySchedule.is_available) ? '#fecaca' : '#bae6fd'}`,
+                  borderRadius: '14px',
                   padding: '12px 16px',
                   marginTop: '10px',
                   marginBottom: '10px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: (daySchedule.is_capacity_reached || !daySchedule.is_available) ? '#f87171' : 'var(--text-accent)' }}>
-                      <Clock size={14} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: (daySchedule.is_capacity_reached || !daySchedule.is_available) ? '#dc2626' : '#0369a1' }}>
+                      <Clock size={15} color={(daySchedule.is_capacity_reached || !daySchedule.is_available) ? '#dc2626' : '#0284c7'} />
                       <span>Doctor Working Hours: {formatTimeLabel(daySchedule.start_time)} - {formatTimeLabel(daySchedule.end_time)}</span>
                     </div>
 
                     <span style={{
                       fontSize: '0.74rem',
-                      fontWeight: 700,
-                      padding: '2px 10px',
+                      fontWeight: 750,
+                      padding: '3px 10px',
                       borderRadius: '10px',
                       background: daySchedule.is_capacity_reached 
-                        ? 'rgba(239, 68, 68, 0.2)' 
-                        : (daySchedule.is_available ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)'),
+                        ? '#fee2e2' 
+                        : (daySchedule.is_available ? '#dcfce7' : '#fee2e2'),
                       color: daySchedule.is_capacity_reached 
-                        ? '#fca5a5' 
-                        : (daySchedule.is_available ? 'var(--emerald-accent)' : '#fca5a5')
+                        ? '#b91c1c' 
+                        : (daySchedule.is_available ? '#15803d' : '#b91c1c'),
+                      border: `1px solid ${daySchedule.is_capacity_reached ? '#fca5a5' : (daySchedule.is_available ? '#86efac' : '#fca5a5')}`
                     }}>
                       {daySchedule.is_capacity_reached 
                         ? `Fully Booked (${daySchedule.booked_count}/${daySchedule.max_appointments} capacity)` 
@@ -1212,15 +1282,15 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   </div>
 
                   {daySchedule.notes && (
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '8px', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '0.76rem', color: '#475569', marginBottom: '8px', fontStyle: 'italic', fontWeight: 500 }}>
                       Schedule note: {daySchedule.notes}
                     </div>
                   )}
 
                   {/* Unavailable / Capacity Reached Alert */}
                   {!daySchedule.is_available && (
-                    <div style={{ color: '#f87171', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                      <AlertCircle size={14} />
+                    <div style={{ color: '#dc2626', fontSize: '0.82rem', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                      <AlertCircle size={15} />
                       <span>{doctorName} is not available for consultations on this date. Please select another date.</span>
                     </div>
                   )}
@@ -1228,30 +1298,30 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   {daySchedule.is_capacity_reached && daySchedule.is_available && (
                     <div style={{
                       marginTop: '8px',
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
                       borderRadius: '12px',
                       padding: '12px 14px'
                     }}>
-                      <div style={{ color: '#ef4444', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ color: '#dc2626', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <AlertCircle size={15} />
                         <span>Daily limit reached: {doctorName} accepts a maximum of {daySchedule.max_appointments} appointments for this date and is fully booked.</span>
                       </div>
 
                       {/* Priority Waiting List Option */}
-                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(239, 68, 68, 0.2)' }}>
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fca5a5' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                           <div>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
                               Join the Priority Waitlist
                             </div>
-                            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                            <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '2px', fontWeight: 500 }}>
                               If any patient cancels, an instant notification will be dispatched so you can reclaim this slot.
                             </div>
                           </div>
                           
                           {waitlistSuccess ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '0.78rem', fontWeight: 700, background: '#f0fdf4', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#15803d', fontSize: '0.78rem', fontWeight: 800, background: '#dcfce7', padding: '6px 12px', borderRadius: '8px', border: '1px solid #86efac' }}>
                               <CheckCircle2 size={14} />
                               <span>Waitlist Confirmed!</span>
                             </div>
@@ -1265,9 +1335,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                                 color: '#ffffff',
                                 border: 'none',
                                 borderRadius: '8px',
-                                padding: '7px 14px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700,
+                                padding: '7px 16px',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
                                 cursor: joiningWaitlist ? 'not-allowed' : 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1283,12 +1353,12 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                         </div>
 
                         {waitlistSuccess && (
-                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#15803d', fontWeight: 600 }}>
+                          <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>
                             {waitlistSuccess}
                           </div>
                         )}
                         {waitlistError && (
-                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>
+                          <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>
                             {waitlistError}
                           </div>
                         )}
@@ -1299,10 +1369,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   {/* Interactive Time Slot Pills */}
                   {daySchedule.is_available && !daySchedule.is_capacity_reached && daySchedule.time_slots?.length > 0 && (
                     <div style={{ marginTop: '10px' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <div style={{ fontSize: '0.74rem', color: '#334155', marginBottom: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Click to select an available consultation slot:
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '2px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '120px', overflowY: 'auto', padding: '2px' }}>
                         {daySchedule.time_slots.map((slot) => {
                           const isPast = isSlotPast(slot.time) || slot.reason === 'past';
                           const isClickable = slot.available && !isPast;
@@ -1314,27 +1384,32 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                               disabled={!isClickable}
                               onClick={isClickable ? () => handleSelectTime(slot.time) : undefined}
                               style={{
-                                padding: '6px 11px',
-                                fontSize: '0.74rem',
-                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '0.78rem',
+                                borderRadius: '8px',
                                 border: isSelected 
-                                  ? '1px solid var(--primary)' 
-                                  : (isClickable ? '1px solid var(--border-subtle)' : '1px solid rgba(255,255,255,0.05)'),
+                                  ? '1.5px solid #0284c7' 
+                                  : (isClickable ? '1.5px solid #cbd5e1' : '1px dashed #e2e8f0'),
                                 background: isSelected 
-                                  ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(13, 148, 136, 0.45))' 
-                                  : (isClickable ? 'var(--bg-surface)' : 'rgba(255, 255, 255, 0.02)'),
+                                  ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' 
+                                  : (isClickable ? '#ffffff' : '#f1f5f9'),
                                 color: isSelected 
-                                  ? '#fff' 
-                                  : (isClickable ? 'var(--text-primary)' : 'rgba(148, 163, 184, 0.3)'),
+                                  ? '#ffffff' 
+                                  : (isClickable ? '#0f172a' : '#94a3b8'),
                                 cursor: isClickable ? 'pointer' : 'not-allowed',
-                                opacity: isClickable ? 1 : 0.32,
+                                opacity: isClickable ? 1 : 0.45,
                                 pointerEvents: isClickable ? 'auto' : 'none',
-                                fontWeight: isSelected ? 700 : 500,
+                                fontWeight: isSelected ? 800 : 700,
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
+                                gap: '5px',
                                 textDecoration: slot.reason === 'booked' ? 'line-through' : 'none',
-                                userSelect: 'none'
+                                userSelect: 'none',
+                                boxShadow: isSelected 
+                                  ? '0 3px 8px rgba(2, 132, 199, 0.35)' 
+                                  : (isClickable ? '0 1px 2px rgba(0,0,0,0.04)' : 'none'),
+                                transform: isSelected ? 'scale(1.02)' : 'none',
+                                transition: 'all 0.15s ease'
                               }}
                               title={
                                 isPast 
@@ -1344,10 +1419,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                                   : `Select consultation at ${slot.label}`
                               }
                             >
-                              {slot.label}
-                              {isSelected && <CheckCircle2 size={12} color="var(--emerald-accent)" />}
+                              <span>{slot.label}</span>
+                              {isSelected && <CheckCircle2 size={13} color="#ffffff" />}
                               {!slot.available && slot.reason === 'booked' && (
-                                <span style={{ fontSize: '0.62rem', opacity: 0.8, color: '#f87171' }}>Booked</span>
+                                <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#dc2626' }}>Booked</span>
                               )}
                             </button>
                           );
@@ -1359,37 +1434,49 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               )}
               
               {checkingAvailability && (
-                <small style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '4px', display: 'block' }}>
+                <small style={{ color: '#0284c7', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 650 }}>
                   Checking doctor schedule availability...
                 </small>
               )}
 
               {/* Status Warning: Outside Doctor Working Hours */}
               {daySchedule?.is_available && isTimeOutOfHours && (
-                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} />
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '10px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', border: '1.5px solid #fecaca', color: '#b91c1c', borderRadius: '10px' }}>
+                  <AlertCircle size={16} color="#dc2626" />
                   <span>Outside Working Hours: {doctorName} is only available between {formatTimeLabel(daySchedule.start_time)} and {formatTimeLabel(daySchedule.end_time)} on this date.</span>
                 </div>
               )}
 
               {/* Status Warning: Unavailable / Day off */}
               {daySchedule && !daySchedule.is_available && (
-                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} />
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '10px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', border: '1.5px solid #fecaca', color: '#b91c1c', borderRadius: '10px' }}>
+                  <AlertCircle size={16} color="#dc2626" />
                   <span>Doctor Unavailable: {doctorName} is off-duty / unavailable on {selectedDateStr}. Please select an upcoming available date.</span>
                 </div>
               )}
 
               {conflictWarning && (
-                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} />
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '10px 14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', border: '1.5px solid #fecaca', color: '#b91c1c', borderRadius: '10px' }}>
+                  <AlertCircle size={16} color="#dc2626" />
                   <span>{conflictWarning}</span>
                 </div>
               )}
 
               {!conflictWarning && !isTimeOutOfHours && daySchedule?.is_available && !daySchedule?.is_capacity_reached && !checkingAvailability && appointmentDatetime && !isPastSelected && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
-                  <CheckCircle2 size={14} />
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '10px',
+                  padding: '7px 14px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  color: '#15803d',
+                  fontWeight: 750
+                }}>
+                  <CheckCircle2 size={16} color="#16a34a" />
                   <span>Schedule verified: {doctorName} is available at this time.</span>
                 </div>
               )}
@@ -1398,9 +1485,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               {appointmentDatetime && (
                 <div style={{
                   background: isTimeOutOfHours || daySchedule?.is_available === false
-                    ? 'rgba(239, 68, 68, 0.08)' 
-                    : 'rgba(2, 132, 199, 0.08)',
-                  border: `1px solid ${isTimeOutOfHours || daySchedule?.is_available === false ? 'rgba(239, 68, 68, 0.35)' : 'rgba(2, 132, 199, 0.25)'}`,
+                    ? '#fef2f2' 
+                    : '#f0f9ff',
+                  border: `1.5px solid ${isTimeOutOfHours || daySchedule?.is_available === false ? '#fecaca' : '#bae6fd'}`,
                   borderRadius: '12px',
                   padding: '10px 14px',
                   marginTop: '12px',
@@ -1410,16 +1497,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   flexWrap: 'wrap',
                   gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: isTimeOutOfHours ? '#ef4444' : '#0369a1' }}>
-                    <Calendar size={16} color={isTimeOutOfHours ? '#ef4444' : '#0284c7'} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: isTimeOutOfHours ? '#dc2626' : '#0369a1' }}>
+                    <Calendar size={16} color={isTimeOutOfHours ? '#dc2626' : '#0284c7'} />
                     <span>
-                      Chosen Date: <strong style={{ color: '#0f172a' }}>{new Date(`${selectedDateStr}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong> at <strong style={{ color: isTimeOutOfHours ? '#ef4444' : '#0284c7' }}>{formatTimeLabel(selectedTimeStr)}</strong>
-                      {isTimeOutOfHours && <span style={{ marginLeft: '8px', fontSize: '0.74rem', color: '#dc2626', fontWeight: 700 }}>(Outside working hours)</span>}
+                      Chosen Date: <strong style={{ color: '#0f172a' }}>{new Date(`${selectedDateStr}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong> at <strong style={{ color: isTimeOutOfHours ? '#dc2626' : '#0284c7' }}>{formatTimeLabel(selectedTimeStr)}</strong>
+                      {isTimeOutOfHours && <span style={{ marginLeft: '8px', fontSize: '0.74rem', color: '#dc2626', fontWeight: 750 }}>(Outside working hours)</span>}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <label htmlFor="book-time-adjust" style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+                    <label htmlFor="book-time-adjust" style={{ fontSize: '0.76rem', color: '#334155', fontWeight: 750 }}>
                       Adjust:
                     </label>
                     <input
@@ -1430,11 +1517,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                       value={selectedTimeStr}
                       onChange={(e) => handleSelectTime(e.target.value)}
                       style={{
-                        padding: '3px 8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
+                        padding: '4px 8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
                         borderRadius: '6px',
-                        border: `1px solid ${isTimeOutOfHours ? '#ef4444' : '#cbd5e1'}`,
+                        border: `1.5px solid ${isTimeOutOfHours ? '#ef4444' : '#cbd5e1'}`,
                         background: '#ffffff',
                         color: isTimeOutOfHours ? '#b91c1c' : '#0f172a',
                         cursor: 'pointer',
@@ -1447,13 +1534,23 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               )}
             </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="book-type">Appointment Type *</label>
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label" htmlFor="book-type" style={{ color: '#0f172a', fontWeight: 750, fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
+                Appointment Type *
+              </label>
               <select
                 id="book-type"
                 className="form-input role-select"
                 value={appointmentType}
                 onChange={(e) => setAppointmentType(e.target.value)}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#0f172a',
+                  fontWeight: 650,
+                  fontSize: '0.9rem',
+                  borderRadius: '10px'
+                }}
                 required
               >
                 {APPOINTMENT_TYPES.map((type) => (
@@ -1464,25 +1561,45 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               </select>
             </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="book-notes">Medical Notes / Symptoms (Optional)</label>
+            <div className="form-group" style={{ marginBottom: '18px' }}>
+              <label className="form-label" htmlFor="book-notes" style={{ color: '#0f172a', fontWeight: 750, fontSize: '0.85rem', marginBottom: '6px', display: 'block' }}>
+                Medical Notes / Symptoms (Optional)
+              </label>
               <textarea
                 id="book-notes"
                 className="form-input"
                 rows="3"
-                style={{ paddingLeft: '14px', resize: 'vertical' }}
+                style={{
+                  padding: '10px 14px',
+                  resize: 'vertical',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#0f172a',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  borderRadius: '10px'
+                }}
                 placeholder="Brief reason for consultation, complaints, or referral details..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '16px 26px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button
                 type="button"
                 className="btn-cancel"
                 onClick={handleClose}
                 disabled={loading}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#334155',
+                  fontWeight: 750,
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
@@ -1491,8 +1608,14 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 className="btn-submit"
                 style={{ 
                   width: 'auto', 
-                  padding: '10px 24px', 
+                  padding: '10px 26px', 
                   margin: 0,
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
                   opacity: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false || isTimeOutOfHours || isSelectedSlotUnavailable) ? 0.45 : 1,
                   cursor: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false || isTimeOutOfHours || isSelectedSlotUnavailable) ? 'not-allowed' : 'pointer'
                 }}

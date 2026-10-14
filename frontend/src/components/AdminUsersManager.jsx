@@ -100,194 +100,335 @@ export default function AdminUsersManager({ currentAdmin }) {
 
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border-subtle)',
-      borderRadius: 'var(--radius-md)',
-      padding: '24px',
-      marginBottom: '32px'
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '24px',
+      padding: '28px',
+      marginBottom: '32px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={20} color="var(--danger)" />
-            Administrator RBAC User Directory
-          </h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            System-wide user authority management. Register staff and doctors, reassign roles, or toggle access.
-          </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #e0f2fe, #dcfce7)',
+            border: '1.5px solid #bae6fd',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#0284c7'
+          }}>
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 850, color: '#0f172a', letterSpacing: '-0.01em', margin: 0 }}>
+              Administrator RBAC User Directory
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '3px', fontWeight: 500, margin: 0 }}>
+              System-wide user authority management. Register staff and doctors, reassign roles, or toggle access.
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn-submit"
             style={{ 
               width: 'auto', 
-              padding: '8px 16px', 
-              fontSize: '0.82rem', 
+              padding: '9px 18px', 
+              fontSize: '0.84rem', 
+              fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, #06b6d4, #0d9488)',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 8px rgba(6, 182, 212, 0.25)'
+              borderRadius: '10px',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+              cursor: 'pointer'
             }}
             onClick={() => setIsRegisterModalOpen(true)}
             id="btn-admin-open-register"
           >
-            <UserPlus size={15} />
+            <UserPlus size={16} />
             <span>Register Staff / Doctor</span>
           </button>
 
           <button
             type="button"
             className="btn-cancel"
-            style={{ padding: '8px 14px', fontSize: '0.8rem', margin: 0 }}
+            style={{
+              padding: '9px 16px',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              margin: 0,
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#334155',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
             onClick={fetchUsers}
             title="Refresh user list"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={15} />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {successMsg && (
-        <div className="alert-box" style={{ background: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.35)', color: '#6ee7b7', marginBottom: '14px' }}>
-          <CheckCircle2 size={16} />
+        <div className="alert-box" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', color: '#15803d', fontWeight: 700, borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle2 size={16} color="#16a34a" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="alert-box alert-danger" style={{ marginBottom: '14px' }}>
-          <AlertCircle size={16} />
+        <div className="alert-box alert-danger" style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#b91c1c', fontWeight: 700, borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={16} color="#dc2626" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flex: 1, minWidth: '240px', gap: '8px' }}>
-          <div className="input-with-icon" style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flex: 1, minWidth: '260px', gap: '8px' }}>
+          <div className="input-with-icon" style={{ flex: 1, position: 'relative' }}>
             <input
               type="text"
               className="form-input"
               placeholder="Search by name, username, or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '38px', fontSize: '0.84rem' }}
+              style={{
+                paddingLeft: '40px',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                color: '#0f172a',
+                borderRadius: '12px',
+                width: '100%',
+                paddingTop: '10px',
+                paddingBottom: '10px'
+              }}
             />
-            <Search size={16} className="input-icon" />
+            <Search size={17} className="input-icon" style={{ color: '#64748b' }} />
           </div>
-          <button type="submit" className="btn-cancel" style={{ padding: '0 14px', fontSize: '0.82rem' }}>
+          <button
+            type="submit"
+            className="btn-cancel"
+            style={{
+              padding: '0 18px',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#0f172a',
+              borderRadius: '12px',
+              cursor: 'pointer'
+            }}
+          >
             Search
           </button>
         </form>
 
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {['all', 'admin', 'doctor', 'staff', 'patient'].map((role) => (
-            <button
-              key={role}
-              type="button"
-              className={`specialty-pill-btn ${roleFilter === role ? 'active' : ''}`}
-              onClick={() => setRoleFilter(role)}
-              style={{ fontSize: '0.78rem', padding: '6px 12px', textTransform: 'capitalize' }}
-            >
-              {role === 'all' ? 'All Roles' : role}
-            </button>
-          ))}
+          {['all', 'admin', 'doctor', 'staff', 'patient'].map((role) => {
+            const isActive = roleFilter === role;
+            return (
+              <button
+                key={role}
+                type="button"
+                onClick={() => setRoleFilter(role)}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '7px 16px',
+                  textTransform: 'capitalize',
+                  borderRadius: '9999px',
+                  border: isActive ? '1.5px solid #0284c7' : '1.5px solid #cbd5e1',
+                  background: isActive ? '#0284c7' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#334155',
+                  fontWeight: isActive ? 800 : 650,
+                  cursor: 'pointer',
+                  boxShadow: isActive ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {role === 'all' ? 'All Roles' : role}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="appointments-table-wrapper" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+      <div className="appointments-table-wrapper" style={{ maxHeight: '460px', overflowY: 'auto', border: '1.5px solid #e2e8f0', borderRadius: '16px', background: '#ffffff' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '30px 0' }}>
+          <div style={{ textAlign: 'center', padding: '36px 0' }}>
             <div className="spinner" style={{ width: '28px', height: '28px', margin: '0 auto 10px' }} />
-            <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Loading system users...</span>
+            <span style={{ fontSize: '0.86rem', color: '#64748b', fontWeight: 650 }}>Loading system users...</span>
           </div>
         ) : users.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
             No users match current criteria.
           </div>
         ) : (
-          <table className="appointments-table">
+          <table className="appointments-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>User / Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Specialization</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Role Assignment</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                <th style={{ padding: '14px 18px', textAlign: 'left', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User / Name</th>
+                <th style={{ padding: '14px 18px', textAlign: 'left', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</th>
+                <th style={{ padding: '14px 18px', textAlign: 'left', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</th>
+                <th style={{ padding: '14px 18px', textAlign: 'left', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Specialization</th>
+                <th style={{ padding: '14px 18px', textAlign: 'left', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                <th style={{ padding: '14px 18px', textAlign: 'right', color: '#475569', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role Assignment</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-accent)' }}>#{u.id}</td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {u.full_name || u.username}
-                    </div>
-                    <small style={{ color: 'var(--text-muted)' }}>@{u.username}</small>
-                  </td>
-                  <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{u.email}</td>
-                  <td>
-                    <span className={`role-pill ${u.role}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>
-                    {u.specialization ? (
-                      <span className="type-badge" style={{ borderColor: 'rgba(6, 182, 212, 0.3)', color: '#67e8f9' }}>
-                        {u.specialization}
+              {users.map((u) => {
+                const getRoleBadgeStyle = (r) => {
+                  switch (r) {
+                    case 'admin':
+                      return { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' };
+                    case 'doctor':
+                      return { background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' };
+                    case 'staff':
+                      return { background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' };
+                    default:
+                      return { background: '#dcfce7', color: '#15803d', border: '1px solid #86efac' };
+                  }
+                };
+
+                const badge = getRoleBadgeStyle(u.role);
+
+                return (
+                  <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: u.role === 'admin' ? 'linear-gradient(135deg, #fee2e2, #fecdd3)' : (u.role === 'doctor' ? 'linear-gradient(135deg, #e0f2fe, #bae6fd)' : (u.role === 'staff' ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'linear-gradient(135deg, #dcfce7, #bbf7d0)')),
+                          border: `1.5px solid ${u.role === 'admin' ? '#fca5a5' : (u.role === 'doctor' ? '#7dd3fc' : (u.role === 'staff' ? '#fcd34d' : '#86efac'))}`,
+                          color: u.role === 'admin' ? '#b91c1c' : (u.role === 'doctor' ? '#0369a1' : (u.role === 'staff' ? '#b45309' : '#15803d')),
+                          fontWeight: 800,
+                          fontSize: '0.86rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {(u.full_name || u.username || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.94rem' }}>
+                            {u.full_name || u.username}
+                          </div>
+                          <small style={{ color: '#64748b', fontWeight: 650, fontSize: '0.78rem' }}>@{u.username}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '14px 18px', fontSize: '0.86rem', color: '#334155', fontWeight: 600 }}>
+                      {u.email}
+                    </td>
+                    <td style={{ padding: '14px 18px' }}>
+                      <span style={{
+                        ...badge,
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        padding: '4px 12px',
+                        borderRadius: '16px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        display: 'inline-block'
+                      }}>
+                        {u.role}
                       </span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>&mdash;</span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleStatus(u)}
-                      disabled={actionLoadingId === u.id || u.id === currentAdmin.id}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: u.id === currentAdmin.id ? 'default' : 'pointer',
-                        padding: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        color: u.is_active ? 'var(--success)' : 'var(--danger)',
-                      }}
-                      title={u.id === currentAdmin.id ? 'Self account' : 'Click to toggle active status'}
-                    >
-                      {u.is_active ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                      <span>{u.is_active ? 'Active' : 'Disabled'}</span>
-                    </button>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <select
-                      className="form-input role-select"
-                      style={{ width: '110px', fontSize: '0.78rem', padding: '4px 8px' }}
-                      value={u.role}
-                      disabled={actionLoadingId === u.id || u.id === currentAdmin.id}
-                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="staff">Staff</option>
-                      <option value="patient">Patient</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ padding: '14px 18px' }}>
+                      {u.specialization ? (
+                        <span style={{
+                          background: '#f0f9ff',
+                          color: '#0369a1',
+                          border: '1.5px solid #bae6fd',
+                          fontWeight: 750,
+                          fontSize: '0.76rem',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}>
+                          <Stethoscope size={13} color="#0284c7" />
+                          <span>{u.specialization}</span>
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '0.84rem', fontWeight: 600 }}>&mdash;</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '14px 18px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(u)}
+                        disabled={actionLoadingId === u.id || u.id === currentAdmin.id}
+                        style={{
+                          background: u.is_active ? '#dcfce7' : '#fee2e2',
+                          border: `1px solid ${u.is_active ? '#86efac' : '#fca5a5'}`,
+                          borderRadius: '16px',
+                          cursor: u.id === currentAdmin.id ? 'default' : 'pointer',
+                          padding: '4px 12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.76rem',
+                          fontWeight: 750,
+                          color: u.is_active ? '#15803d' : '#b91c1c',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={u.id === currentAdmin.id ? 'Self account' : 'Click to toggle active status'}
+                      >
+                        {u.is_active ? <CheckCircle2 size={13} color="#16a34a" /> : <XCircle size={13} color="#dc2626" />}
+                        <span>{u.is_active ? 'Active' : 'Disabled'}</span>
+                      </button>
+                    </td>
+                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                      <select
+                        style={{
+                          width: '110px',
+                          fontSize: '0.82rem',
+                          fontWeight: 750,
+                          padding: '6px 10px',
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          color: '#0f172a',
+                          borderRadius: '8px',
+                          cursor: u.id === currentAdmin.id ? 'not-allowed' : 'pointer',
+                          outline: 'none'
+                        }}
+                        value={u.role}
+                        disabled={actionLoadingId === u.id || u.id === currentAdmin.id}
+                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="staff">Staff</option>
+                        <option value="patient">Patient</option>
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
