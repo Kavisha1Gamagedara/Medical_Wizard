@@ -5900,3 +5900,70 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 
+
+/* ==========================================================================
+   HIGH-VISIBILITY CITYCARE THEME OVERRIDES (ROLE PILLS & APPOINTMENT TABLE)
+   ========================================================================== */
+
+.citycare-app-root .role-pill {
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.citycare-app-root .role-pill.admin {
+  background: #ffe4e6 !important;
+  color: #be123c !important;
+  border: 1.5px solid #fda4af !important;
+}
+
+.citycare-app-root .role-pill.doctor {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1.5px solid #7dd3fc !important;
+}
+
+.citycare-app-root .role-pill.staff {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 1.5px solid #86efac !important;
+}
+
+.citycare-app-root .role-pill.patient {
+  background: #f3e8ff !important;
+  color: #7e22ce !important;
+  border: 1.5px solid #d8b4fe !important;
+}
+
+.citycare-app-root .appointments-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.citycare-app-root .appointments-table th {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 14px 18px !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.citycare-app-root .appointments-table td {
+  padding: 16px 18px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  vertical-align: middle !important;
+}
+
+.citycare-app-root .appointments-table tbody tr:hover {
+  background: #f8fafc !important;
+}
