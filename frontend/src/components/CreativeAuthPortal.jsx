@@ -45,6 +45,8 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
   const [regEmail, setRegEmail] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [regRole, setRegRole] = useState('patient'); // 'patient' | 'doctor' | 'staff'
   const [regSpecialization, setRegSpecialization] = useState('Cardiology');
 
@@ -112,6 +114,16 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
       return;
     }
 
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg('Passwords do not match. Please re-confirm your password.');
+      return;
+    }
+
+    if (regPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
     try {
       await authService.register({
@@ -119,8 +131,7 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
         username: regUsername.trim(),
         full_name: regFullName.trim() || undefined,
         password: regPassword,
-        role: regRole,
-        specialization: regRole === 'doctor' ? regSpecialization : undefined,
+        role: 'patient',
       });
 
       setSuccessMsg(`Account created for ${regUsername}! Signing you in...`);
@@ -371,51 +382,6 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
                   />
                 </div>
 
-                {/* Account Type Selection */}
-                <div className="creative-field-group">
-                  <label className="creative-input-label">Account Role</label>
-                  <div className="creative-role-pills-row">
-                    <button
-                      type="button"
-                      className={`role-select-pill ${regRole === 'patient' ? 'selected' : ''}`}
-                      onClick={() => setRegRole('patient')}
-                    >
-                      Patient
-                    </button>
-                    <button
-                      type="button"
-                      className={`role-select-pill ${regRole === 'doctor' ? 'selected' : ''}`}
-                      onClick={() => setRegRole('doctor')}
-                    >
-                      Doctor
-                    </button>
-                    <button
-                      type="button"
-                      className={`role-select-pill ${regRole === 'staff' ? 'selected' : ''}`}
-                      onClick={() => setRegRole('staff')}
-                    >
-                      Staff
-                    </button>
-                  </div>
-                </div>
-
-                {regRole === 'doctor' && (
-                  <div className="creative-field-group">
-                    <label className="creative-input-label">Clinical Specialization</label>
-                    <select
-                      className="creative-pill-input"
-                      value={regSpecialization}
-                      onChange={(e) => setRegSpecialization(e.target.value)}
-                      style={{ color: '#0f172a' }}
-                    >
-                      <option value="Cardiology">Cardiology</option>
-                      <option value="Neurology">Neurology</option>
-                      <option value="Pediatrics">Pediatrics</option>
-                      <option value="Dentistry">Dentistry</option>
-                      <option value="General Medicine">General Medicine</option>
-                    </select>
-                  </div>
-                )}
 
                 <div className="creative-field-group">
                   <label className="creative-input-label" htmlFor="reg-pass">
@@ -426,7 +392,7 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
                       id="reg-pass"
                       type={showPassword ? 'text' : 'password'}
                       className="creative-pill-input has-toggle"
-                      placeholder="Create a strong password"
+                      placeholder="Create a strong password (min 6 chars)"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       required
@@ -435,10 +401,52 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
                       type="button"
                       className="creative-eye-toggle-btn"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label="Toggle password visibility"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                </div>
+
+                <div className="creative-field-group">
+                  <label className="creative-input-label" htmlFor="reg-confirm-pass">
+                    Re-confirm Password
+                  </label>
+                  <div className="creative-pass-wrapper">
+                    <input
+                      id="reg-confirm-pass"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      className="creative-pill-input has-toggle"
+                      placeholder="Re-enter your password"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      style={{
+                        borderColor: regConfirmPassword 
+                          ? (regPassword === regConfirmPassword ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)') 
+                          : undefined
+                      }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="creative-eye-toggle-btn"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label="Toggle confirm password visibility"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {regConfirmPassword && (
+                    <div style={{
+                      fontSize: '0.72rem',
+                      marginTop: '4px',
+                      paddingLeft: '6px',
+                      fontWeight: 600,
+                      color: regPassword === regConfirmPassword ? '#86efac' : '#fca5a5'
+                    }}>
+                      {regPassword === regConfirmPassword ? '✓ Passwords match' : '✕ Passwords do not match'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Register Button */}
