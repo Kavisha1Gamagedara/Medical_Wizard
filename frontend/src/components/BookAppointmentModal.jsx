@@ -125,6 +125,20 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const selectedDateStr = appointmentDatetime ? appointmentDatetime.slice(0, 10) : '';
   const selectedTimeStr = appointmentDatetime && appointmentDatetime.length >= 16 ? appointmentDatetime.slice(11, 16) : '10:00';
 
+  // Check if chosen time is outside doctor's configured working hours
+  const isTimeOutOfHours = Boolean(
+    daySchedule?.is_available &&
+    daySchedule?.start_time &&
+    daySchedule?.end_time &&
+    (selectedTimeStr < daySchedule.start_time || selectedTimeStr >= daySchedule.end_time)
+  );
+
+  // Check if chosen slot is already booked or otherwise unavailable
+  const selectedSlotInfo = daySchedule?.time_slots?.find((s) => s.time === selectedTimeStr);
+  const isSelectedSlotUnavailable = Boolean(
+    selectedSlotInfo && (!selectedSlotInfo.available || selectedSlotInfo.reason === 'booked')
+  );
+
   const getTodayDateStr = () => {
     const pad = (n) => String(n).padStart(2, '0');
     const d = new Date();
@@ -189,23 +203,41 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     };
 
     fetchSchedule();
-    return () => { isMounted = false; };
+
+    const handleScheduleUpdated = (e) => {
+      if (!e.detail?.doctorName || e.detail.doctorName.toLowerCase().includes(doctorName.toLowerCase()) || doctorName.toLowerCase().includes(e.detail.doctorName.toLowerCase())) {
+        fetchSchedule();
+      }
+    };
+    window.addEventListener('mw_schedule_updated', handleScheduleUpdated);
+
+    return () => { 
+      isMounted = false;
+      window.removeEventListener('mw_schedule_updated', handleScheduleUpdated);
+    };
   }, [selectedDateStr, doctorName]);
 
-  // When schedule loads, if selected time slot is in the past, automatically select the first upcoming available slot
+  // When schedule loads or updates, automatically align chosen time slot to the doctor's available working hours
   useEffect(() => {
     if (daySchedule?.time_slots?.length > 0 && daySchedule.is_available && !daySchedule.is_capacity_reached) {
-      if (isPastDateTime(appointmentDatetime)) {
-        const firstUpcoming = daySchedule.time_slots.find((s) => {
+      const isCurrentSlotAvailable = daySchedule.time_slots.some(
+        (s) => s.time === selectedTimeStr && s.available && !isSlotPast(s.time) && s.reason !== 'past'
+      );
+
+      // If current time is out of working hours or unavailable, automatically snap to the first available slot
+      if (!isCurrentSlotAvailable || isPastDateTime(appointmentDatetime)) {
+        const firstAvailable = daySchedule.time_slots.find((s) => {
           const slotTs = new Date(`${selectedDateStr}T${s.time}`).getTime();
           return s.available && s.reason !== 'past' && slotTs > Date.now();
         });
-        if (firstUpcoming) {
-          setAppointmentDatetime(`${selectedDateStr}T${firstUpcoming.time}`);
+        if (firstAvailable) {
+          setAppointmentDatetime(`${selectedDateStr}T${firstAvailable.time}`);
+        } else if (daySchedule.start_time) {
+          setAppointmentDatetime(`${selectedDateStr}T${daySchedule.start_time}`);
         }
       }
     }
-  }, [daySchedule, selectedDateStr, appointmentDatetime]);
+  }, [daySchedule, selectedDateStr]);
 
   // Reset form values on modal open or doctor change
   useEffect(() => {
@@ -390,6 +422,16 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
     if (daySchedule && daySchedule.is_capacity_reached) {
       setErrorMsg(`Booking Limit Reached: ${doctorName} accepts a maximum of ${daySchedule.max_appointments} appointments on this date and is fully booked. Please select another date.`);
+      return;
+    }
+
+    if (isTimeOutOfHours) {
+      setErrorMsg(`Outside Working Hours: ${doctorName} is only available between ${formatTimeLabel(daySchedule.start_time)} and ${formatTimeLabel(daySchedule.end_time)} on this date.`);
+      return;
+    }
+
+    if (isSelectedSlotUnavailable) {
+      setErrorMsg(`The selected time slot (${formatTimeLabel(selectedTimeStr)}) is unavailable or already booked. Please choose an available slot.`);
       return;
     }
 
@@ -1259,7 +1301,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                               key={slot.time}
                               type="button"
                               disabled={!isClickable}
-                              onClick={isClickable ? () => handleSelectSlot(slot.time) : undefined}
+                              onClick={isClickable ? () => handleSelectTime(slot.time) : undefined}
                               style={{
                                 padding: '6px 11px',
                                 fontSize: '0.74rem',
@@ -1311,6 +1353,22 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 </small>
               )}
 
+              {/* Status Warning: Outside Doctor Working Hours */}
+              {daySchedule?.is_available && isTimeOutOfHours && (
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  <span>Outside Working Hours: {doctorName} is only available between {formatTimeLabel(daySchedule.start_time)} and {formatTimeLabel(daySchedule.end_time)} on this date.</span>
+                </div>
+              )}
+
+              {/* Status Warning: Unavailable / Day off */}
+              {daySchedule && !daySchedule.is_available && (
+                <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  <span>Doctor Unavailable: {doctorName} is off-duty / unavailable on {selectedDateStr}. Please select an upcoming available date.</span>
+                </div>
+              )}
+
               {conflictWarning && (
                 <div className="alert-box alert-danger" style={{ marginTop: '8px', padding: '8px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertCircle size={16} />
@@ -1318,18 +1376,20 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 </div>
               )}
 
-              {!conflictWarning && !checkingAvailability && appointmentDatetime && !isPastSelected && (
+              {!conflictWarning && !isTimeOutOfHours && daySchedule?.is_available && !daySchedule?.is_capacity_reached && !checkingAvailability && appointmentDatetime && !isPastSelected && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
                   <CheckCircle2 size={14} />
-                  <span>Schedule verified: No collisions for {doctorName} at this time.</span>
+                  <span>Schedule verified: {doctorName} is available at this time.</span>
                 </div>
               )}
 
               {/* Confirmed Consultation Date & Time Summary Card */}
               {appointmentDatetime && (
                 <div style={{
-                  background: 'rgba(2, 132, 199, 0.08)',
-                  border: '1px solid rgba(2, 132, 199, 0.25)',
+                  background: isTimeOutOfHours || daySchedule?.is_available === false
+                    ? 'rgba(239, 68, 68, 0.08)' 
+                    : 'rgba(2, 132, 199, 0.08)',
+                  border: `1px solid ${isTimeOutOfHours || daySchedule?.is_available === false ? 'rgba(239, 68, 68, 0.35)' : 'rgba(2, 132, 199, 0.25)'}`,
                   borderRadius: '12px',
                   padding: '10px 14px',
                   marginTop: '12px',
@@ -1339,10 +1399,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   flexWrap: 'wrap',
                   gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#0369a1' }}>
-                    <Calendar size={16} color="#0284c7" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: isTimeOutOfHours ? '#ef4444' : '#0369a1' }}>
+                    <Calendar size={16} color={isTimeOutOfHours ? '#ef4444' : '#0284c7'} />
                     <span>
-                      Chosen Date: <strong style={{ color: '#0f172a' }}>{new Date(`${selectedDateStr}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong> at <strong style={{ color: '#0284c7' }}>{formatTimeLabel(selectedTimeStr)}</strong>
+                      Chosen Date: <strong style={{ color: '#0f172a' }}>{new Date(`${selectedDateStr}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong> at <strong style={{ color: isTimeOutOfHours ? '#ef4444' : '#0284c7' }}>{formatTimeLabel(selectedTimeStr)}</strong>
+                      {isTimeOutOfHours && <span style={{ marginLeft: '8px', fontSize: '0.74rem', color: '#dc2626', fontWeight: 700 }}>(Outside working hours)</span>}
                     </span>
                   </div>
 
@@ -1353,6 +1414,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                     <input
                       id="book-time-adjust"
                       type="time"
+                      min={daySchedule?.start_time || '08:00'}
+                      max={daySchedule?.end_time || '18:00'}
                       value={selectedTimeStr}
                       onChange={(e) => handleSelectTime(e.target.value)}
                       style={{
@@ -1360,9 +1423,9 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                         fontSize: '0.8rem',
                         fontWeight: 700,
                         borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
+                        border: `1px solid ${isTimeOutOfHours ? '#ef4444' : '#cbd5e1'}`,
                         background: '#ffffff',
-                        color: '#0f172a',
+                        color: isTimeOutOfHours ? '#b91c1c' : '#0f172a',
                         cursor: 'pointer',
                         colorScheme: 'light'
                       }}
@@ -1419,10 +1482,10 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                   width: 'auto', 
                   padding: '10px 24px', 
                   margin: 0,
-                  opacity: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 0.45 : 1,
-                  cursor: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false) ? 'not-allowed' : 'pointer'
+                  opacity: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false || isTimeOutOfHours || isSelectedSlotUnavailable) ? 0.45 : 1,
+                  cursor: (!isPatientOrStaff || conflictWarning || isPastSelected || !appointmentDatetime || daySchedule?.is_capacity_reached || daySchedule?.is_available === false || isTimeOutOfHours || isSelectedSlotUnavailable) ? 'not-allowed' : 'pointer'
                 }}
-                disabled={!isPatientOrStaff || loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime || Boolean(daySchedule?.is_capacity_reached) || daySchedule?.is_available === false}
+                disabled={!isPatientOrStaff || loading || Boolean(conflictWarning) || isPastSelected || !appointmentDatetime || Boolean(daySchedule?.is_capacity_reached) || daySchedule?.is_available === false || isTimeOutOfHours || isSelectedSlotUnavailable}
                 id="btn-confirm-booking"
                 title={
                   !currentUser 
@@ -1431,7 +1494,11 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                         ? 'Clinician notice: Doctor accounts cannot book appointments' 
                         : (conflictWarning 
                             ? conflictWarning 
-                            : (isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined)))
+                            : (isTimeOutOfHours 
+                                ? `Selected time is outside doctor's working hours (${daySchedule?.start_time} - ${daySchedule?.end_time})`
+                                : (isSelectedSlotUnavailable 
+                                    ? 'The selected time slot is already booked or unavailable' 
+                                    : (isPastSelected ? 'Cannot book an appointment for a past date or time' : undefined)))))
                 }
               >
                 {loading ? (
