@@ -1,9 +1,10 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, doctors, appointments, users
+from app.api.v1.endpoints import auth, doctors, appointments, users, notifications
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(doctors.router)
 api_router.include_router(appointments.router)
 api_router.include_router(users.router)
+api_router.include_router(notifications.router)
 
