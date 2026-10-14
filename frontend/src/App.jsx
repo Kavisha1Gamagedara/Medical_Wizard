@@ -76,7 +76,68 @@ export default function App() {
   const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileCard, setShowProfileCard] = useState(false);
+  // Notifications state
   const [showNotifications, setShowNotifications] = useState(false);
+  const [patientNotifications, setPatientNotifications] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // Listen to new patient notifications created across the app
+  useEffect(() => {
+    const handleNewNotif = () => {
+      try {
+        const notifs = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
+        setPatientNotifications(notifs);
+      } catch {
+        // fallback
+      }
+    };
+    window.addEventListener('mw_notification_created', handleNewNotif);
+    window.addEventListener('storage', handleNewNotif);
+    return () => {
+      window.removeEventListener('mw_notification_created', handleNewNotif);
+      window.removeEventListener('storage', handleNewNotif);
+    };
+  }, []);
+
+  const normalizeName = (str) => (str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
+
+  // Filter notifications strictly to the logged-in patient
+  const userNotifications = patientNotifications.filter((n) => {
+    if (!user) return false;
+    // Admins and staff manage clinical operations and do not receive other patients' personal alerts in their bell
+    if (user.role !== 'patient') {
+      return false;
+    }
+    // Strict patient matching by ID or normalized name/username
+    if (n.patientId && user.id && Number(n.patientId) === Number(user.id)) {
+      return true;
+    }
+    const currentNormName = normalizeName(user.full_name || user.username);
+    const notifNormName = normalizeName(n.patientName);
+    return Boolean(currentNormName && notifNormName && (currentNormName === notifNormName || currentNormName.includes(notifNormName) || notifNormName.includes(currentNormName)));
+  });
+
+  const unreadCount = userNotifications.filter(n => !n.read).length;
+
+  const markAllNotifsRead = () => {
+    const updated = patientNotifications.map((n) => {
+      // Mark read only for this patient's notifications
+      const isMine = user && (
+        (n.patientId && user.id && Number(n.patientId) === Number(user.id)) ||
+        (normalizeName(user.full_name || user.username) === normalizeName(n.patientName))
+      );
+      return isMine ? { ...n, read: true } : n;
+    });
+    setPatientNotifications(updated);
+    try {
+      localStorage.setItem('mw_patient_notifications', JSON.stringify(updated));
+    } catch {}
+  };
 
   useEffect(() => {
     // Check saved session on app load
@@ -392,35 +453,109 @@ export default function App() {
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <Bell size={18} color="#334155" />
-              <span className="citycare-badge-dot" />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '10px',
+                  fontWeight: 900,
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 5px rgba(239, 68, 68, 0.4)'
+                }}>
+                  {unreadCount}
+                </span>
+              )}
             </button>
 
             {showNotifications && (
-              <div className="citycare-notifications-popover">
-                <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                  Clinical Alerts (3)
-                </div>
-                <div className="citycare-notif-item">
-                  <span className="dot danger" />
-                  <div>
-                    <strong>ICU Beds Below 10%</strong>
-                    <small>Emergency ward telemetry &bull; 5m ago</small>
+              <div className="citycare-notifications-popover" style={{ width: '340px', padding: '16px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '10px', 
+                  borderBottom: '1px solid #f1f5f9', 
+                  paddingBottom: '8px' 
+                }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                    {user?.role === 'patient' ? 'My Consultation Alerts' : 'Clinic Notifications'}
+                    {unreadCount > 0 && (
+                      <span style={{ 
+                        marginLeft: '6px', 
+                        fontSize: '0.72rem', 
+                        background: '#e0f2fe', 
+                        color: '#0284c7', 
+                        padding: '2px 8px', 
+                        borderRadius: '999px',
+                        fontWeight: 700
+                      }}>
+                        {unreadCount} New
+                      </span>
+                    )}
                   </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllNotifsRead}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0284c7',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mark all read
+                    </button>
+                  )}
                 </div>
-                <div className="citycare-notif-item">
-                  <span className="dot warning" />
-                  <div>
-                    <strong>Ventilator Maintenance Due</strong>
-                    <small>Unit B-12 calibration &bull; 15m ago</small>
+
+                {/* Notifications List */}
+                {userNotifications.length === 0 ? (
+                  <div style={{ padding: '18px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
+                    No notifications yet. Upcoming consultation reminders and updates will appear here.
                   </div>
-                </div>
-                <div className="citycare-notif-item">
-                  <span className="dot success" />
-                  <div>
-                    <strong>Patient Check-In Verified</strong>
-                    <small>Dr. Emily Jones consultation &bull; 22m ago</small>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                    {userNotifications.slice(0, 8).map((notif) => (
+                      <div 
+                        key={notif.id}
+                        className="citycare-notif-item"
+                        style={{
+                          background: notif.read ? '#f8fafc' : '#f0f9ff',
+                          border: notif.read ? '1px solid #e2e8f0' : '1px solid #bae6fd',
+                          borderRadius: '10px',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px'
+                        }}
+                      >
+                        <span className={`dot ${notif.read ? 'success' : 'warning'}`} style={{ marginTop: '4px' }} />
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block', lineHeight: 1.3 }}>
+                            {notif.title}
+                          </strong>
+                          <p style={{ fontSize: '0.76rem', color: '#475569', margin: '3px 0 4px', lineHeight: 1.35 }}>
+                            {notif.message}
+                          </p>
+                          <small style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'block' }}>
+                            {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &bull; {new Date(notif.timestamp).toLocaleDateString()}
+                          </small>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
