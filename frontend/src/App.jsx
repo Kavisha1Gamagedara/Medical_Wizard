@@ -12,7 +12,6 @@ import {
   Activity,
   QrCode,
   Bell,
-  Settings,
   Users,
   UserPlus,
   Glasses
@@ -426,21 +425,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Settings Button */}
-          <button
-            type="button"
-            className="citycare-icon-btn"
-            title="System & Account Settings"
-            onClick={() => {
-              if (user?.role === 'admin') setIsAdminRegisterOpen(true);
-              else if (user?.role === 'staff') setIsVerifyModalOpen(true);
-              else if (user) setShowProfileCard(true);
-              else handleNavClick('staff');
-            }}
-          >
-            <Settings size={18} color="#334155" />
-          </button>
-
           {/* User Profile Area: Sign In / Register button when logged out, Initials Badge when logged in */}
           {user ? (
             <div style={{ position: 'relative' }}>
@@ -534,7 +518,8 @@ export default function App() {
         {/* HOME TAB (PUBLIC CLINICAL PORTAL) */}
         {activeTab === 'home' && (
           <CityCareDashboard
-            currentUser={null}
+            currentUser={user}
+            isHomeView={true}
             onNavigate={handleNavClick}
           />
         )}

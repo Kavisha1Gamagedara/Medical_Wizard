@@ -340,13 +340,24 @@ def get_appointment_by_verification_code(db: Session, code: str) -> Optional[App
     raw_clean = code.strip().upper()
     norm_code = normalize_verification_code(code)
 
-    return db.query(Appointment).filter(
+    apt = db.query(Appointment).filter(
         or_(
             Appointment.verification_code.ilike(raw_clean),
             Appointment.verification_code.ilike(norm_code),
             Appointment.verification_code.ilike(f"%{raw_clean}%") if len(raw_clean) >= 4 else False,
         )
     ).first()
+
+    if apt:
+        now_utc = datetime.now(timezone.utc)
+        apt_dt_utc = apt.appointment_datetime if apt.appointment_datetime.tzinfo else apt.appointment_datetime.replace(tzinfo=timezone.utc)
+        if apt.status == "Scheduled" and not apt.is_verified and apt_dt_utc < now_utc:
+            apt.status = "Expired"
+            db.add(apt)
+            db.commit()
+            db.refresh(apt)
+
+    return apt
 
 
 def verify_patient_checkin(
@@ -366,16 +377,24 @@ def verify_patient_checkin(
             detail=f"Verification Failed: No appointment found matching verification code '{code}'. Please verify the code or search the directory.",
         )
 
+    now_utc = datetime.now(timezone.utc)
+    apt_dt_utc = apt.appointment_datetime if apt.appointment_datetime.tzinfo else apt.appointment_datetime.replace(tzinfo=timezone.utc)
+    if apt.status == "Expired" or (apt.status == "Scheduled" and not apt.is_verified and apt_dt_utc < now_utc):
+        if apt.status != "Expired":
+            apt.status = "Expired"
+            db.add(apt)
+            db.commit()
+            db.refresh(apt)
+        formatted_dt = apt.appointment_datetime.strftime("%Y-%m-%d %I:%M %p")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Verification Failed: Appointment #{apt.id} has Expired. The scheduled consultation time ({formatted_dt}) has passed without attendance and cannot be verified.",
+        )
+
     if apt.status == "Cancelled":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot Check In: Appointment #{apt.id} was Cancelled and cannot be verified for consultation.",
-        )
-
-    if apt.status == "Expired":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot Check In: Appointment #{apt.id} has Expired because the scheduled time passed without attendance.",
         )
 
     verifier_name = getattr(verified_by_user, "full_name", None) or getattr(verified_by_user, "username", "Front Desk Staff")

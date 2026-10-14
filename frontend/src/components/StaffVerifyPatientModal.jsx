@@ -30,6 +30,15 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
     return input.trim().toUpperCase().replace(/\s+/g, '');
   };
 
+  const isAppointmentExpired = (apt) => {
+    if (!apt) return false;
+    if (apt.status === 'Expired') return true;
+    if (apt.status === 'Scheduled' && !apt.is_verified) {
+      return new Date(apt.appointment_datetime).getTime() < Date.now();
+    }
+    return false;
+  };
+
   const handleLookup = async (e) => {
     if (e) e.preventDefault();
     const cleanCode = normalizeCodeInput(code);
@@ -46,6 +55,16 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
     try {
       const apt = await appointmentService.lookupVerification(cleanCode);
       setFoundApt(apt);
+
+      if (isAppointmentExpired(apt)) {
+        const timeStr = new Date(apt.appointment_datetime).toLocaleString([], {
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        });
+        setErrorMsg(`Verification Failed: Appointment #${apt.id} is EXPIRED. The scheduled consultation time (${timeStr}) has passed without attendance and cannot be checked in.`);
+      } else if (apt.status === 'Cancelled') {
+        setErrorMsg(`Verification Failed: Appointment #${apt.id} was CANCELLED and cannot be verified for check-in.`);
+      }
     } catch (err) {
       setErrorMsg(err.message || `No appointment found with verification code '${cleanCode}'. Please check and try again.`);
     } finally {
@@ -55,6 +74,16 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
 
   const handleConfirmCheckin = async () => {
     if (!foundApt) return;
+
+    if (isAppointmentExpired(foundApt)) {
+      const timeStr = new Date(foundApt.appointment_datetime).toLocaleString([], {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+      setErrorMsg(`Verification Failed: Appointment #${foundApt.id} is EXPIRED. The scheduled consultation time (${timeStr}) has passed without attendance.`);
+      return;
+    }
+
     setVerifying(true);
     setErrorMsg('');
 
@@ -87,7 +116,7 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
 
   const isAlreadyCompleted = foundApt && (foundApt.status === 'Completed' || foundApt.status === 'Checked In' || foundApt.is_verified);
   const isCancelled = foundApt && foundApt.status === 'Cancelled';
-  const isExpired = foundApt && foundApt.status === 'Expired';
+  const isExpired = isAppointmentExpired(foundApt);
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 1200 }}>
@@ -282,12 +311,12 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
                         fontWeight: 700,
                         padding: '3px 10px', 
                         borderRadius: '12px',
-                        background: isAlreadyCompleted ? '#ede9fe' : isExpired ? '#fef3c7' : isCancelled ? '#ffe4e6' : '#e0f2fe',
-                        color: isAlreadyCompleted ? '#6d28d9' : isExpired ? '#b45309' : isCancelled ? '#e11d48' : '#0284c7',
-                        border: `1px solid ${isAlreadyCompleted ? '#ddd6fe' : isExpired ? '#fde68a' : isCancelled ? '#fecdd3' : '#bae6fd'}`
+                        background: isAlreadyCompleted ? '#ede9fe' : isExpired ? '#fef2f2' : isCancelled ? '#ffe4e6' : '#e0f2fe',
+                        color: isAlreadyCompleted ? '#6d28d9' : isExpired ? '#b91c1c' : isCancelled ? '#e11d48' : '#0284c7',
+                        border: `1px solid ${isAlreadyCompleted ? '#ddd6fe' : isExpired ? '#fca5a5' : isCancelled ? '#fecdd3' : '#bae6fd'}`
                       }}
                     >
-                      {foundApt.status}
+                      {isExpired ? 'Expired' : foundApt.status}
                     </span>
                   </div>
 
@@ -327,9 +356,27 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
                   )}
 
                   {isExpired && (
-                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px 14px', fontSize: '0.82rem', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <AlertCircle size={16} />
-                      <span>This appointment has <strong>Expired</strong> because the scheduled consultation time has passed without attendance.</span>
+                    <div 
+                      style={{ 
+                        background: '#fef2f2', 
+                        border: '1.5px solid #fca5a5', 
+                        borderRadius: '12px', 
+                        padding: '12px 16px', 
+                        color: '#991b1b', 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        gap: '10px' 
+                      }}
+                    >
+                      <AlertCircle size={18} style={{ color: '#dc2626', flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '0.88rem', color: '#991b1b', marginBottom: '2px' }}>
+                          Appointment Expired
+                        </strong>
+                        <span style={{ fontSize: '0.82rem', lineHeight: 1.45, color: '#b91c1c' }}>
+                          This appointment pass has expired because the scheduled consultation time has passed without attendance. Expired passes cannot be verified or checked in.
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -362,8 +409,31 @@ export default function StaffVerifyPatientModal({ isOpen, onClose, onVerificatio
               {/* Action Buttons */}
               <div className="modal-footer" style={{ padding: 0, marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" className="btn-cancel" onClick={handleClose} style={{ padding: '10px 16px', borderRadius: '12px' }}>
-                  Cancel
+                  Close
                 </button>
+                {foundApt && isExpired && (
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    disabled
+                    style={{ 
+                      opacity: 0.7, 
+                      cursor: 'not-allowed', 
+                      color: '#dc2626', 
+                      borderColor: '#fca5a5', 
+                      background: '#fef2f2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 18px',
+                      borderRadius: '12px',
+                      fontWeight: 700
+                    }}
+                  >
+                    <AlertCircle size={15} />
+                    <span>Pass Expired</span>
+                  </button>
+                )}
                 {foundApt && !isCancelled && !isExpired && !isAlreadyCompleted && (
                   <button
                     type="button"

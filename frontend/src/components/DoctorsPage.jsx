@@ -76,16 +76,53 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
     }
   };
 
-  const getSpecialtyBadgeClass = (specialty) => {
+  const getSpecialtyTheme = (specialty) => {
     switch (specialty?.toLowerCase()) {
       case 'neurosurgeon':
-        return 'role-pill doctor';
+        return {
+          bg: '#f5f3ff',
+          color: '#6d28d9',
+          border: '#ddd6fe',
+          avatarBg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+          avatarColor: '#7c3aed',
+          label: specialty || 'Neurosurgeon'
+        };
       case 'dentist':
-        return 'role-pill staff';
+        return {
+          bg: '#ecfdf5',
+          color: '#047857',
+          border: '#a7f3d0',
+          avatarBg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+          avatarColor: '#059669',
+          label: specialty || 'Dentist'
+        };
       case 'cardiologist':
-        return 'role-pill admin';
+        return {
+          bg: '#fff1f2',
+          color: '#be123c',
+          border: '#fecdd3',
+          avatarBg: 'linear-gradient(135deg, #ffe4e6, #fecdd3)',
+          avatarColor: '#e11d48',
+          label: specialty || 'Cardiologist'
+        };
+      case 'pediatrician':
+        return {
+          bg: '#f0f9ff',
+          color: '#0369a1',
+          border: '#bae6fd',
+          avatarBg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)',
+          avatarColor: '#0284c7',
+          label: specialty || 'Pediatrician'
+        };
       default:
-        return 'role-pill doctor';
+        return {
+          bg: '#f0fdfa',
+          color: '#0f766e',
+          border: '#99f6e4',
+          avatarBg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)',
+          avatarColor: '#0d9488',
+          label: specialty || 'General Physician'
+        };
     }
   };
 
@@ -103,7 +140,7 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
         </p>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="doctors-search-bar" style={{ maxWidth: '640px', marginTop: '20px' }}>
+        <form onSubmit={handleSearchSubmit} className="doctors-search-bar">
           <div className="input-with-icon" style={{ flex: 1 }}>
             <input
               type="text"
@@ -111,11 +148,11 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
               placeholder="Search by doctor name or specialty (e.g. Smith, Dentist, Cardio)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '42px', background: 'rgba(11, 19, 35, 0.95)' }}
+              style={{ paddingLeft: '44px' }}
             />
             <Search size={18} className="input-icon" />
           </div>
-          <button type="submit" className="btn-submit" style={{ width: 'auto', padding: '12px 24px', margin: 0 }}>
+          <button type="submit" className="btn-submit" style={{ width: 'auto', padding: '12px 28px', margin: 0 }}>
             Search
           </button>
         </form>
@@ -172,93 +209,109 @@ export default function DoctorsPage({ currentUser, onAppointmentCreated, onNavig
           </div>
         ) : (
           <div className="doctors-cards-grid">
-            {doctors.map((doc) => (
-              <div key={doc.id} className="doctor-card">
-                <div className="doctor-card-top">
-                  <div className="doctor-avatar-box">
-                    <Stethoscope size={24} />
-                  </div>
-                  <div>
-                    <h3 className="doctor-name">
-                      {doc.full_name || `Dr. ${doc.username}`}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                      <span className={getSpecialtyBadgeClass(doc.specialization)}>
-                        {doc.specialization || 'General Physician'}
-                      </span>
+            {doctors.map((doc) => {
+              const theme = getSpecialtyTheme(doc.specialization);
+              return (
+                <div key={doc.id} className="doctor-card">
+                  <div className="doctor-card-top">
+                    <div 
+                      className="doctor-avatar-box"
+                      style={{
+                        background: theme.avatarBg,
+                        color: theme.avatarColor,
+                        border: `1.5px solid ${theme.border}`
+                      }}
+                    >
+                      <Stethoscope size={26} />
+                    </div>
+                    <div>
+                      <h3 className="doctor-name">
+                        {doc.full_name || `Dr. ${doc.username}`}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                        <span 
+                          className="doctor-specialty-pill"
+                          style={{
+                            background: theme.bg,
+                            color: theme.color,
+                            border: `1px solid ${theme.border}`
+                          }}
+                        >
+                          {theme.label}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <p className="doctor-bio">
-                  {doc.bio || 'Consulting physician providing dedicated patient assessments and care.'}
-                </p>
+                  <p className="doctor-bio">
+                    {doc.bio || 'Consulting physician providing dedicated patient assessments and care.'}
+                  </p>
 
-                <div className="doctor-meta-list">
-                  <div className="doctor-meta-item">
-                    <Mail size={14} color="var(--text-muted)" />
-                    <span>{doc.email}</span>
-                  </div>
-                  {doc.phone_number && (
+                  <div className="doctor-meta-list">
                     <div className="doctor-meta-item">
-                      <Phone size={14} color="var(--text-muted)" />
-                      <span>{doc.phone_number}</span>
+                      <div className="meta-icon-bubble email">
+                        <Mail size={14} />
+                      </div>
+                      <span className="meta-text">{doc.email}</span>
                     </div>
-                  )}
-                  <div className="doctor-meta-item">
-                    <CheckCircle2 size={14} color="var(--emerald-accent)" />
-                    <span style={{ color: 'var(--emerald-accent)', fontWeight: '600' }}>
-                      Accepting Appointments
-                    </span>
+                    {doc.phone_number && (
+                      <div className="doctor-meta-item">
+                        <div className="meta-icon-bubble phone">
+                          <Phone size={14} />
+                        </div>
+                        <span className="meta-text">{doc.phone_number}</span>
+                      </div>
+                    )}
+                    <div className="doctor-status-badge">
+                      <span className="status-indicator-dot" />
+                      <span className="status-badge-text">Accepting Appointments</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                    {currentUser?.role !== 'doctor' && (
+                      <button
+                        type="button"
+                        className="btn-book-doctor"
+                        style={{ flex: 1, margin: 0 }}
+                        onClick={() => handleOpenBooking(doc)}
+                        id={`btn-book-${doc.username}`}
+                      >
+                        <Calendar size={15} />
+                        <span>Book Appointment</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    )}
+
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'staff' || (currentUser?.role === 'doctor' && currentUser?.id === doc.id)) && (
+                      <button
+                        type="button"
+                        className="btn-doctor-availability"
+                        style={{ 
+                          flex: currentUser?.role === 'doctor' ? 1 : undefined,
+                          padding: currentUser?.role === 'doctor' ? '12px 18px' : '0 14px', 
+                          fontSize: '0.82rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          gap: '6px', 
+                          margin: 0
+                        }}
+                        onClick={() => {
+                          setActiveDoctorForAvailability(doc);
+                          setIsAvailabilityModalOpen(true);
+                        }}
+                        title="Set available hours & max daily appointments capacity"
+                        id={`btn-availability-${doc.username}`}
+                      >
+                        <Clock size={14} />
+                        <span>{currentUser?.role === 'doctor' ? 'My Availability & Capacity' : 'Availability'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  {currentUser?.role !== 'doctor' && (
-                    <button
-                      type="button"
-                      className="btn-book-doctor"
-                      style={{ flex: 1, margin: 0 }}
-                      onClick={() => handleOpenBooking(doc)}
-                      id={`btn-book-${doc.username}`}
-                    >
-                      <Calendar size={15} />
-                      <span>Book Appointment</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  )}
-
-                  {(currentUser?.role === 'admin' || currentUser?.role === 'staff' || (currentUser?.role === 'doctor' && currentUser?.id === doc.id)) && (
-                    <button
-                      type="button"
-                      className="btn-cancel"
-                      style={{ 
-                        flex: currentUser?.role === 'doctor' ? 1 : undefined,
-                        padding: currentUser?.role === 'doctor' ? '10px 16px' : '0 12px', 
-                        fontSize: '0.8rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        gap: '6px', 
-                        margin: 0,
-                        background: currentUser?.role === 'doctor' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(13, 148, 136, 0.2))' : undefined,
-                        borderColor: currentUser?.role === 'doctor' ? 'var(--emerald-accent)' : undefined,
-                        color: currentUser?.role === 'doctor' ? '#6ee7b7' : undefined
-                      }}
-                      onClick={() => {
-                        setActiveDoctorForAvailability(doc);
-                        setIsAvailabilityModalOpen(true);
-                      }}
-                      title="Set available hours & max daily appointments capacity"
-                      id={`btn-availability-${doc.username}`}
-                    >
-                      <Clock size={14} />
-                      <span>{currentUser?.role === 'doctor' ? 'My Availability & Capacity' : 'Availability'}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
