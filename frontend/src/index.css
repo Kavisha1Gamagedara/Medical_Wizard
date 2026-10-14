@@ -5318,3 +5318,316 @@ html {
   color: #ffffff;
   text-decoration: underline;
 }
+
+/* ========================================================
+   ELDER VISION ACCESSIBILITY MODE & NAVBAR TOGGLE
+   ======================================================== */
+
+/* Navbar Toggle Button */
+.citycare-elder-vision-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 40px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.citycare-elder-vision-toggle:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
+}
+
+.citycare-elder-vision-toggle.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28), 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.citycare-elder-vision-toggle .elder-vision-icon {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.citycare-elder-vision-toggle.active .elder-vision-icon {
+  color: #38bdf8;
+  transform: scale(1.15);
+}
+
+.citycare-elder-vision-toggle .elder-vision-text {
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.elder-vision-switch-indicator {
+  width: 32px;
+  height: 18px;
+  border-radius: 20px;
+  background: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: all 0.22s ease;
+  position: relative;
+}
+
+.elder-vision-switch-indicator.on {
+  background: #10b981;
+}
+
+.elder-vision-switch-knob {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(0);
+}
+
+.elder-vision-switch-indicator.on .elder-vision-switch-knob {
+  transform: translateX(14px);
+}
+
+/* --------------------------------------------------------
+   GLOBAL ELDER VISION MODE RULES (SCALING & CONTRAST)
+   -------------------------------------------------------- */
+
+html.elder-vision-mode {
+  font-size: 19px !important; /* Scales all rem units up by ~19% */
+  transition: font-size 0.2s ease;
+}
+
+body.elder-vision-mode {
+  font-size: 1.12rem !important;
+  line-height: 1.68 !important;
+  letter-spacing: 0.014em !important;
+  font-weight: 500 !important;
+  color: #020617 !important;
+}
+
+/* Headings Scaled & High Contrast */
+.elder-vision-mode h1 {
+  font-size: 2.3rem !important;
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+  color: #020617 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.elder-vision-mode h2 {
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+  color: #020617 !important;
+}
+
+.elder-vision-mode h3 {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  color: #020617 !important;
+}
+
+.elder-vision-mode h4,
+.elder-vision-mode h5,
+.elder-vision-mode h6 {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: #020617 !important;
+}
+
+.elder-vision-mode p,
+.elder-vision-mode span,
+.elder-vision-mode li {
+  line-height: 1.68 !important;
+}
+
+/* Enhance low-contrast muted text so low-vision readers don't struggle */
+.elder-vision-mode [style*="color: var(--text-muted)"],
+.elder-vision-mode [style*="color: #64748b"],
+.elder-vision-mode [style*="color: #94a3b8"],
+.elder-vision-mode .text-muted,
+.elder-vision-mode small {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+/* Navigation & Header Enlargement */
+.elder-vision-mode .citycare-brand-title {
+  font-size: 1.55rem !important;
+}
+
+.elder-vision-mode .citycare-pill-btn {
+  padding: 10px 24px !important;
+  font-size: 0.96rem !important;
+  font-weight: 700 !important;
+}
+
+.elder-vision-mode .citycare-icon-btn {
+  width: 44px !important;
+  height: 44px !important;
+  transform: scale(1.1) !important;
+}
+
+/* Form Controls & Inputs (Bigger touch/click targets & larger inputs) */
+.elder-vision-mode .form-label,
+.elder-vision-mode label {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin-bottom: 8px !important;
+}
+
+.elder-vision-mode .form-input,
+.elder-vision-mode .form-select,
+.elder-vision-mode input[type="text"],
+.elder-vision-mode input[type="email"],
+.elder-vision-mode input[type="password"],
+.elder-vision-mode input[type="datetime-local"],
+.elder-vision-mode select,
+.elder-vision-mode textarea {
+  font-size: 1.15rem !important;
+  padding: 14px 18px !important;
+  min-height: 54px !important;
+  border-width: 2px !important;
+  border-color: #64748b !important;
+  color: #020617 !important;
+  font-weight: 600 !important;
+}
+
+.elder-vision-mode .input-icon {
+  transform: scale(1.22) !important;
+}
+
+/* Buttons Enlarged */
+.elder-vision-mode .btn-submit,
+.elder-vision-mode .btn-action,
+.elder-vision-mode button.btn-primary {
+  padding: 14px 26px !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  min-height: 50px !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Avatars & Visual Images Scaled Up */
+.elder-vision-mode .citycare-brand-logo-mark {
+  width: 46px !important;
+  height: 46px !important;
+  transform: scale(1.15) !important;
+}
+
+.elder-vision-mode .citycare-user-avatar-initials {
+  width: 46px !important;
+  height: 46px !important;
+  font-size: 1.12rem !important;
+  font-weight: 800 !important;
+}
+
+.elder-vision-mode .citycare-user-avatar-wrap,
+.elder-vision-mode .avatar-circle,
+.elder-vision-mode .user-avatar {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+.elder-vision-mode .doctor-card-avatar,
+.elder-vision-mode .doctor-photo,
+.elder-vision-mode img.doctor-avatar {
+  width: 96px !important;
+  height: 96px !important;
+  border-width: 3px !important;
+}
+
+.elder-vision-mode .doctor-directory-card,
+.elder-vision-mode .doctor-card {
+  padding: 24px !important;
+  border-width: 2px !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* QR Code & Digital Passes Enlarged for easy scanning & viewing */
+.elder-vision-mode .receipt-qr-wrapper,
+.elder-vision-mode .qr-container,
+.elder-vision-mode canvas.qr-code,
+.elder-vision-mode .qr-image {
+  transform: scale(1.2) !important;
+  margin: 16px auto !important;
+}
+
+/* Strengthened Icon Strokes */
+.elder-vision-mode svg:not(.elder-vision-icon) {
+  stroke-width: 2.2px !important;
+}
+
+/* Tables & Appointment Directory Rows */
+.elder-vision-mode .appointments-table th,
+.elder-vision-mode .data-table th,
+.elder-vision-mode table th {
+  font-size: 0.96rem !important;
+  padding: 16px 20px !important;
+  font-weight: 800 !important;
+  color: #020617 !important;
+}
+
+.elder-vision-mode .appointments-table td,
+.elder-vision-mode .data-table td,
+.elder-vision-mode table td {
+  font-size: 1.08rem !important;
+  padding: 18px 20px !important;
+  color: #020617 !important;
+  font-weight: 600 !important;
+}
+
+.elder-vision-mode .appointments-table tr,
+.elder-vision-mode table tr {
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* Status & Role Badges */
+.elder-vision-mode .status-pill,
+.elder-vision-mode .role-pill,
+.elder-vision-mode [class*="status-pill"],
+.elder-vision-mode [class*="role-pill"] {
+  font-size: 0.9rem !important;
+  padding: 6px 14px !important;
+  font-weight: 800 !important;
+  border-width: 1.5px !important;
+}
+
+/* Modals & Dialogs */
+.elder-vision-mode .modal-container {
+  max-width: 660px !important;
+  padding: 28px !important;
+  border-width: 2px !important;
+  border-color: #38bdf8 !important;
+}
+
+.elder-vision-mode .modal-close-btn {
+  width: 44px !important;
+  height: 44px !important;
+  transform: scale(1.15) !important;
+}
+
+/* Alert Notification Boxes */
+.elder-vision-mode .alert-box {
+  padding: 16px 20px !important;
+  font-size: 1.02rem !important;
+  font-weight: 600 !important;
+  border-width: 2px !important;
+}
+
