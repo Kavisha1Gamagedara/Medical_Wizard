@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   HeartPulse,
   Stethoscope,
@@ -14,7 +14,9 @@ import {
   Bell,
   Users,
   UserPlus,
-  Glasses
+  Glasses,
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import CityCareDashboard from './components/CityCareDashboard';
 import DoctorsPage from './components/DoctorsPage';
@@ -24,7 +26,7 @@ import CreativeAuthPortal from './components/CreativeAuthPortal';
 import StaffVerifyPatientModal from './components/StaffVerifyPatientModal';
 import AdminRegisterUserModal from './components/AdminRegisterUserModal';
 import UserProfileCardModal from './components/UserProfileCardModal';
-import { authService } from './services/api';
+import { authService, notificationApiService } from './services/api';
 import citycareAvatar from './assets/citycare_avatar.jpg';
 
 export default function App() {
@@ -76,68 +78,62 @@ export default function App() {
   const [isAdminRegisterOpen, setIsAdminRegisterOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileCard, setShowProfileCard] = useState(false);
-  // Notifications state
+  // Notifications state — fetched from backend API
   const [showNotifications, setShowNotifications] = useState(false);
-  const [patientNotifications, setPatientNotifications] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [apiNotifications, setApiNotifications] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
 
-  // Listen to new patient notifications created across the app
-  useEffect(() => {
-    const handleNewNotif = () => {
-      try {
-        const notifs = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
-        setPatientNotifications(notifs);
-      } catch {
-        // fallback
+  const fetchNotificationsFromApi = useCallback(async () => {
+    if (!user) {
+      setApiNotifications([]);
+      return;
+    }
+    try {
+      setNotifLoading(true);
+      const data = await notificationApiService.getNotifications();
+      if (Array.isArray(data)) {
+        setApiNotifications(data);
       }
-    };
-    window.addEventListener('mw_notification_created', handleNewNotif);
-    window.addEventListener('storage', handleNewNotif);
+    } catch (err) {
+      // Silently fail — don't disrupt user session for a notification fetch error
+      console.warn('Notification fetch error:', err);
+    } finally {
+      setNotifLoading(false);
+    }
+  }, [user]);
+
+  // Fetch notifications on login and periodically every 45s
+  useEffect(() => {
+    fetchNotificationsFromApi();
+    if (!user) return;
+    const interval = setInterval(fetchNotificationsFromApi, 45000);
+    return () => clearInterval(interval);
+  }, [user, fetchNotificationsFromApi]);
+
+  // Also refresh notifications when booking or cancellation events fire
+  useEffect(() => {
+    const handleRefresh = () => fetchNotificationsFromApi();
+    window.addEventListener('mw_notification_created', handleRefresh);
+    window.addEventListener('mw_appointment_cancelled', handleRefresh);
     return () => {
-      window.removeEventListener('mw_notification_created', handleNewNotif);
-      window.removeEventListener('storage', handleNewNotif);
+      window.removeEventListener('mw_notification_created', handleRefresh);
+      window.removeEventListener('mw_appointment_cancelled', handleRefresh);
     };
-  }, []);
+  }, [fetchNotificationsFromApi]);
 
-  const normalizeName = (str) => (str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
+  const userNotifications = user ? apiNotifications : [];
+  const unreadCount = userNotifications.filter(n => !n.is_read).length;
 
-  // Filter notifications strictly to the logged-in patient
-  const userNotifications = patientNotifications.filter((n) => {
-    if (!user) return false;
-    // Admins and staff manage clinical operations and do not receive other patients' personal alerts in their bell
-    if (user.role !== 'patient') {
-      return false;
-    }
-    // Strict patient matching by ID or normalized name/username
-    if (n.patientId && user.id && Number(n.patientId) === Number(user.id)) {
-      return true;
-    }
-    const currentNormName = normalizeName(user.full_name || user.username);
-    const notifNormName = normalizeName(n.patientName);
-    return Boolean(currentNormName && notifNormName && (currentNormName === notifNormName || currentNormName.includes(notifNormName) || notifNormName.includes(currentNormName)));
-  });
-
-  const unreadCount = userNotifications.filter(n => !n.read).length;
-
-  const markAllNotifsRead = () => {
-    const updated = patientNotifications.map((n) => {
-      // Mark read only for this patient's notifications
-      const isMine = user && (
-        (n.patientId && user.id && Number(n.patientId) === Number(user.id)) ||
-        (normalizeName(user.full_name || user.username) === normalizeName(n.patientName))
-      );
-      return isMine ? { ...n, read: true } : n;
-    });
-    setPatientNotifications(updated);
+  const markAllNotifsRead = async () => {
+    if (!user) return;
     try {
-      localStorage.setItem('mw_patient_notifications', JSON.stringify(updated));
-    } catch {}
+      await notificationApiService.markAllRead();
+      setApiNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.warn('Mark all read error:', err);
+    }
   };
+
 
   useEffect(() => {
     // Check saved session on app load
@@ -520,40 +516,85 @@ export default function App() {
                 </div>
 
                 {/* Notifications List */}
-                {userNotifications.length === 0 ? (
+                {notifLoading && userNotifications.length === 0 ? (
                   <div style={{ padding: '18px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
-                    No notifications yet. Upcoming consultation reminders and updates will appear here.
+                    Loading notifications...
+                  </div>
+                ) : userNotifications.length === 0 ? (
+                  <div style={{ padding: '18px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
+                    {user ? 'No notifications yet. Consultation reminders and waitlist slot alerts will appear here.' : 'Sign in to see your notifications.'}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-                    {userNotifications.slice(0, 8).map((notif) => (
-                      <div 
-                        key={notif.id}
-                        className="citycare-notif-item"
-                        style={{
-                          background: notif.read ? '#f8fafc' : '#f0f9ff',
-                          border: notif.read ? '1px solid #e2e8f0' : '1px solid #bae6fd',
-                          borderRadius: '10px',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '10px'
-                        }}
-                      >
-                        <span className={`dot ${notif.read ? 'success' : 'warning'}`} style={{ marginTop: '4px' }} />
-                        <div style={{ flex: 1 }}>
-                          <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block', lineHeight: 1.3 }}>
-                            {notif.title}
-                          </strong>
-                          <p style={{ fontSize: '0.76rem', color: '#475569', margin: '3px 0 4px', lineHeight: 1.35 }}>
-                            {notif.message}
-                          </p>
-                          <small style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'block' }}>
-                            {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &bull; {new Date(notif.timestamp).toLocaleDateString()}
-                          </small>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
+                    {userNotifications.slice(0, 12).map((notif) => {
+                      const isSlotAlert = notif.title && (notif.title.includes('Slot Reclaimed') || notif.title.includes('\u26a1'));
+                      const isWaitlistConfirm = notif.title && (notif.title.includes('Waitlist Confirmed') || notif.title.includes('\u2705'));
+                      return (
+                        <div
+                          key={notif.id}
+                          className="citycare-notif-item"
+                          style={{
+                            background: isSlotAlert
+                              ? 'linear-gradient(135deg,rgba(245,158,11,0.08),rgba(251,191,36,0.05))'
+                              : isWaitlistConfirm
+                              ? 'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05))'
+                              : notif.is_read ? '#f8fafc' : '#f0f9ff',
+                            border: isSlotAlert
+                              ? '1.5px solid rgba(245,158,11,0.4)'
+                              : isWaitlistConfirm
+                              ? '1px solid rgba(99,102,241,0.3)'
+                              : notif.is_read ? '1px solid #e2e8f0' : '1px solid #bae6fd',
+                            borderRadius: '10px',
+                            padding: '10px 12px',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px'
+                          }}
+                        >
+                          <span className={`dot ${notif.is_read ? 'success' : 'warning'}`} style={{ marginTop: '4px', flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <strong style={{
+                              fontSize: '0.82rem',
+                              color: isSlotAlert ? '#92400e' : isWaitlistConfirm ? '#3730a3' : '#0f172a',
+                              display: 'block',
+                              lineHeight: 1.3
+                            }}>
+                              {notif.title}
+                            </strong>
+                            <p style={{ fontSize: '0.76rem', color: '#475569', margin: '3px 0 4px', lineHeight: 1.35 }}>
+                              {notif.message}
+                            </p>
+                            {isSlotAlert && (
+                              <button
+                                type="button"
+                                onClick={() => { setShowNotifications(false); handleNavClick('appointments'); }}
+                                style={{
+                                  background: 'linear-gradient(135deg,#f59e0b,#d97706)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '4px 10px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  marginTop: '4px',
+                                  marginBottom: '2px',
+                                  display: 'inline-block',
+                                  boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+                                }}
+                              >
+                                \u26a1 Book Now \u2192
+                              </button>
+                            )}
+                            <small style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'block', marginTop: '3px' }}>
+                              {notif.created_at
+                                ? new Date(notif.created_at + 'Z').toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                : ''}
+                            </small>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

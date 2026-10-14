@@ -137,9 +137,9 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
     norm_datetime = normalize_to_utc_naive(appointment_in.appointment_datetime)
 
     # Validate that appointment is not scheduled for a past date or time
-    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
-    # Allow 2 minutes grace period for clock skew / submission latency
-    if norm_datetime < (now_utc_naive - timedelta(minutes=2)):
+    now_ref = min(datetime.now(), datetime.now(timezone.utc).replace(tzinfo=None))
+    # Allow 5 minutes grace period for clock skew / submission latency
+    if norm_datetime < (now_ref - timedelta(minutes=5)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid appointment date: Appointments cannot be scheduled for a past date or time. Please choose an upcoming date and time.",
@@ -185,7 +185,16 @@ def create_appointment(db: Session, appointment_in: AppointmentCreate) -> Appoin
                         f"{custom_rule.start_time} and {custom_rule.end_time} on {target_date_str}."
                     ),
                 )
-
+        else:
+            # No custom rule, enforce default working hours 09:00-17:00
+            default_start = availability_service.parse_time_str("09:00")
+            default_end = availability_service.parse_time_str("17:00")
+            appt_time = norm_datetime.time()
+            if appt_time < default_start or appt_time >= default_end:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Outside Working Hours: Appointments must be scheduled between 09:00 and 17:00.",
+                )
     # Strictly verify collision for the chosen doctor
     conflict = check_doctor_schedule_conflict(
         db=db,
