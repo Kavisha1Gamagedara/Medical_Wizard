@@ -86,19 +86,6 @@ def authenticate_user(
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
-        # Allow convenient dev test passwords for seeded roles
-        DEV_PASSWORDS = {
-            "admin": ["admin123", "AdminPassword123!"],
-            "drsmith": ["doctor123", "DoctorPassword123!"],
-            "drchen": ["chen123", "doctor123", "DoctorPassword123!"],
-            "drjones": ["doctor123", "DoctorPassword123!"],
-            "drray": ["doctor123", "DoctorPassword123!"],
-            "reception": ["staff123", "StaffPassword123!"],
-            "patient": ["patient123", "PatientPassword123!"],
-        }
-        allowed = DEV_PASSWORDS.get(user.username.lower(), [])
-        if password in allowed:
-            return user
         return None
     return user
 

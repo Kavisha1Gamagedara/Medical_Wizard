@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  HeartPulse, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
-  ShieldCheck, 
+import {
+  HeartPulse,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  ShieldCheck,
   Sparkles,
   ArrowUp
 } from 'lucide-react';
@@ -40,7 +40,7 @@ export default function LandingFooter({ onNavigate }) {
             </div>
           </div>
           <p className="footer-desc">
-            Excellence in multi-specialty clinical healthcare, frictionless appointment scheduling, 
+            Excellence in multi-specialty clinical healthcare, frictionless appointment scheduling,
             and instant arrival verification passes.
           </p>
           <div className="footer-badge">
@@ -98,11 +98,11 @@ export default function LandingFooter({ onNavigate }) {
           <h4>Hospital Contact</h4>
           <div className="footer-contact-row">
             <MapPin size={16} color="#0284c7" />
-            <span>450 CityCare Boulevard, Metro Medical District</span>
+            <span>450 Union place, Colombo 02</span>
           </div>
           <div className="footer-contact-row">
             <Phone size={16} color="#0284c7" />
-            <span>Emergency: +1 (800) 432-CARE</span>
+            <span>Emergency: +94 11-234-5678</span>
           </div>
           <div className="footer-contact-row">
             <Mail size={16} color="#0284c7" />
@@ -120,8 +120,8 @@ export default function LandingFooter({ onNavigate }) {
         <div>
           &copy; {new Date().getFullYear()} CityCare Medical Wizard Platform. All Rights Reserved. Confidential &amp; Protected Health System.
         </div>
-        <button 
-          type="button" 
+        <button
+          type="button"
           className="btn-back-to-top"
           onClick={scrollToTop}
           title="Scroll back to top"

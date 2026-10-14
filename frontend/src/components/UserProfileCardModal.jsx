@@ -68,9 +68,24 @@ export default function UserProfileCardModal({ user, isOpen, onClose, onProfileU
     setErrorMsg('');
     setSuccessMsg('');
 
+    if (!fullName.trim()) {
+      setErrorMsg('Full name cannot be empty.');
+      return;
+    }
+
+    if (!email.trim() || !email.trim().includes('@') || !email.trim().includes('.')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
     const finalSpecialization = isDoctor
       ? (selectedSpec === 'Other' ? customSpec.trim() : selectedSpec)
       : undefined;
+
+    if (isDoctor && !finalSpecialization) {
+      setErrorMsg('Please specify a medical specialization.');
+      return;
+    }
 
     setSaving(true);
     try {
