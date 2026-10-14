@@ -105,6 +105,10 @@ export const doctorService = {
     return await apiRequest(`/api/v1/doctors${queryString}`);
   },
 
+  async getAllDoctors() {
+    return await this.getDoctors();
+  },
+
   async getDoctorSchedule(doctorIdentifier, dateStr) {
     return await apiRequest(`/api/v1/doctors/${encodeURIComponent(doctorIdentifier)}/schedule?date=${encodeURIComponent(dateStr)}`);
   },

@@ -184,7 +184,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
 
   // Fetch doctor's available times and daily appointment capacity for chosen date
   useEffect(() => {
-    if (!selectedDateStr || !doctorName) {
+    if (!selectedDateStr || (!doctor && !doctorName)) {
       setDaySchedule(null);
       return;
     }
@@ -193,7 +193,8 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
     const fetchSchedule = async () => {
       setLoadingSchedule(true);
       try {
-        const sched = await doctorService.getDoctorSchedule(doctorName, selectedDateStr);
+        const identifier = doctor?.id ?? doctorName;
+        const sched = await doctorService.getDoctorSchedule(identifier, selectedDateStr);
         if (isMounted) setDaySchedule(sched);
       } catch (err) {
         if (isMounted) setDaySchedule(null);
