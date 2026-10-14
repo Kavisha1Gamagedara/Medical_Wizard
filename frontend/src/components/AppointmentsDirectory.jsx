@@ -222,10 +222,10 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
       }
       showFeedback(
         isRescheduling 
-          ? `Appointment #${aptId} successfully rescheduled to ${new Date(payload.appointment_datetime || editingApt.appointment_datetime).toLocaleDateString()} at ${payload.appointment_datetime ? new Date(payload.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}!`
+          ? `Appointment successfully rescheduled to ${new Date(payload.appointment_datetime || editingApt.appointment_datetime).toLocaleDateString()} at ${payload.appointment_datetime ? new Date(payload.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}!`
           : editStatus === 'Cancelled'
-          ? `Appointment #${aptId} cancelled. You'll be notified if a slot reopens.`
-          : `Appointment #${aptId} updated successfully.`
+          ? `Appointment cancelled. You'll be notified if a slot reopens.`
+          : `Appointment updated successfully.`
       );
     } catch (err) {
       setEditError(err.message || 'Update failed.');
@@ -250,7 +250,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
       await fetchAppointments();
       window.dispatchEvent(new CustomEvent('mw_appointment_cancelled', { detail: { aptId: id } }));
       window.dispatchEvent(new CustomEvent('mw_notification_created'));
-      showFeedback(`Appointment #${id} deleted. Waitlisted patients have been notified.`);
+      showFeedback(`Appointment deleted. Waitlisted patients have been notified.`);
     } catch (err) {
       showFeedback(`Deletion failed: ${err.message}`, 'error');
     } finally {
@@ -265,45 +265,45 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
     switch (effectiveStatus) {
       case 'Expired':
         return (
-          <span className="status-badge expired" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <Clock size={12} /> Expired
+          <span className="status-badge expired" style={{ background: '#fef3c7', color: '#92400e', border: '1.5px solid #fcd34d', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <Clock size={13} /> Expired
           </span>
         );
       case 'Checked In':
         return (
-          <span className="status-badge checkedin" style={{ background: '#dcfce7', color: '#059669', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <CheckCircle size={12} /> Checked In
+          <span className="status-badge checkedin" style={{ background: '#dcfce7', color: '#15803d', border: '1.5px solid #86efac', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <CheckCircle size={13} /> Checked In
           </span>
         );
       case 'Completed':
         return (
-          <span className="status-badge completed" style={{ background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <CheckCircle size={12} /> Completed
+          <span className="status-badge completed" style={{ background: '#ede9fe', color: '#6d28d9', border: '1.5px solid #c4b5fd', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <CheckCircle size={13} /> Completed
           </span>
         );
       case 'Cancelled':
         return (
-          <span className="status-badge cancelled" style={{ background: '#ffe4e6', color: '#e11d48', border: '1px solid #fecdd3', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <XCircle size={12} /> Cancelled
+          <span className="status-badge cancelled" style={{ background: '#fee2e2', color: '#991b1b', border: '1.5px solid #fca5a5', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <XCircle size={13} /> Cancelled
           </span>
         );
       case 'No Show':
         return (
-          <span className="status-badge noshow" style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <AlertCircle size={12} /> No Show
+          <span className="status-badge noshow" style={{ background: '#f1f5f9', color: '#475569', border: '1.5px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <AlertCircle size={13} /> No Show
           </span>
         );
       default:
         if (isVerified) {
           return (
-            <span className="status-badge completed" style={{ background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-              <CheckCircle size={12} /> Completed
+            <span className="status-badge completed" style={{ background: '#ede9fe', color: '#6d28d9', border: '1.5px solid #c4b5fd', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+              <CheckCircle size={13} /> Completed
             </span>
           );
         }
         return (
-          <span className="status-badge scheduled" style={{ background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', fontSize: '0.74rem' }}>
-            <Clock size={12} /> Scheduled
+          <span className="status-badge scheduled" style={{ background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, padding: '4px 11px', borderRadius: '20px', fontSize: '0.76rem', letterSpacing: '0.02em' }}>
+            <Clock size={13} /> Scheduled
           </span>
         );
     }
@@ -411,60 +411,73 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
 
       {/* KPI Stats Cards */}
       <div className="stats-kpi-grid">
-        <div className="kpi-card">
-          <span className="kpi-label">Total Consultations</span>
-          <div className="kpi-value">{stats.total}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 12px rgba(15,23,42,0.04)' }}>
+          <span className="kpi-label" style={{ color: '#334155', fontWeight: 800 }}>Total Consultations</span>
+          <div className="kpi-value" style={{ color: '#0f172a', fontWeight: 850 }}>{stats.total}</div>
         </div>
-        <div className="kpi-card" style={{ borderColor: 'rgba(2, 132, 199, 0.3)' }}>
-          <span className="kpi-label" style={{ color: '#0284c7' }}>Scheduled</span>
-          <div className="kpi-value" style={{ color: '#0284c7' }}>{stats.scheduled}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #f0f9ff)', border: '1.5px solid #7dd3fc', boxShadow: '0 4px 12px rgba(2,132,199,0.06)' }}>
+          <span className="kpi-label" style={{ color: '#0369a1', fontWeight: 800 }}>Scheduled</span>
+          <div className="kpi-value" style={{ color: '#0284c7', fontWeight: 850 }}>{stats.scheduled}</div>
         </div>
-        <div className="kpi-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-          <span className="kpi-label" style={{ color: '#059669' }}>Checked In</span>
-          <div className="kpi-value" style={{ color: '#059669' }}>{stats.checked_in || 0}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #f0fdf4)', border: '1.5px solid #86efac', boxShadow: '0 4px 12px rgba(16,185,129,0.06)' }}>
+          <span className="kpi-label" style={{ color: '#15803d', fontWeight: 800 }}>Checked In</span>
+          <div className="kpi-value" style={{ color: '#16a34a', fontWeight: 850 }}>{stats.checked_in || 0}</div>
         </div>
-        <div className="kpi-card" style={{ borderColor: 'rgba(124, 58, 237, 0.3)' }}>
-          <span className="kpi-label" style={{ color: '#7c3aed' }}>Completed</span>
-          <div className="kpi-value" style={{ color: '#7c3aed' }}>{stats.completed}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #f5f3ff)', border: '1.5px solid #c4b5fd', boxShadow: '0 4px 12px rgba(124,58,237,0.06)' }}>
+          <span className="kpi-label" style={{ color: '#6d28d9', fontWeight: 800 }}>Completed</span>
+          <div className="kpi-value" style={{ color: '#7c3aed', fontWeight: 850 }}>{stats.completed}</div>
         </div>
-        <div className="kpi-card" style={{ borderColor: 'rgba(245, 158, 11, 0.3)' }}>
-          <span className="kpi-label" style={{ color: '#d97706' }}>Expired</span>
-          <div className="kpi-value" style={{ color: '#d97706' }}>{stats.expired || 0}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #fffbeb)', border: '1.5px solid #fde047', boxShadow: '0 4px 12px rgba(217,119,6,0.06)' }}>
+          <span className="kpi-label" style={{ color: '#b45309', fontWeight: 800 }}>Expired</span>
+          <div className="kpi-value" style={{ color: '#d97706', fontWeight: 850 }}>{stats.expired || 0}</div>
         </div>
-        <div className="kpi-card" style={{ borderColor: 'rgba(244, 63, 94, 0.3)' }}>
-          <span className="kpi-label" style={{ color: '#e11d48' }}>Cancelled</span>
-          <div className="kpi-value" style={{ color: '#e11d48' }}>{stats.cancelled}</div>
+        <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff, #fff1f2)', border: '1.5px solid #fca5a5', boxShadow: '0 4px 12px rgba(225,29,72,0.06)' }}>
+          <span className="kpi-label" style={{ color: '#be123c', fontWeight: 800 }}>Cancelled</span>
+          <div className="kpi-value" style={{ color: '#e11d48', fontWeight: 850 }}>{stats.cancelled}</div>
         </div>
       </div>
 
       {/* Patient Mode Notification Banner */}
       {isPatient && (
         <div style={{
-          background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(147, 51, 234, 0.08))',
-          border: '1px solid rgba(168, 85, 247, 0.3)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 18px',
-          marginBottom: '20px',
+          background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+          border: '1.5px solid #c4b5fd',
+          borderRadius: '16px',
+          padding: '14px 20px',
+          marginBottom: '22px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '12px'
+          gap: '12px',
+          boxShadow: '0 4px 14px rgba(124, 58, 237, 0.08)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span className="role-pill patient">Patient Account</span>
-            <span style={{ fontSize: '0.88rem', color: '#0f172a' }}>
-              Logged in as <strong>{currentUser.full_name || currentUser.username}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{
+              background: '#7c3aed',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)'
+            }}>
+              Patient Account
+            </span>
+            <span style={{ fontSize: '0.92rem', color: '#1e1b4b', fontWeight: 600 }}>
+              Logged in as <strong style={{ color: '#0f172a', fontWeight: 800 }}>{currentUser.full_name || currentUser.username}</strong>
             </span>
           </div>
           <button
             type="button"
             className="btn-submit"
-            style={{ width: 'auto', padding: '6px 14px', fontSize: '0.8rem', margin: 0 }}
+            style={{ width: 'auto', padding: '8px 18px', fontSize: '0.84rem', margin: 0, fontWeight: 700 }}
             onClick={onNewBookingClick}
           >
-            <Plus size={14} />
-            <span>Book New Consultation</span>
+            <Plus size={15} />
+            <span>+ Book New Consultation</span>
           </button>
         </div>
       )}
@@ -635,15 +648,14 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
         ) : (
           <table className="appointments-table">
             <thead>
-              <tr>
-                <th>Ref #</th>
-                <th>Patient Name</th>
-                <th>Appointment Date &amp; Time</th>
-                <th>Doctor</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Notes</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Patient Name</th>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Appointment Date &amp; Time</th>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Doctor</th>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type</th>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</th>
+                <th style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</th>
+                <th style={{ textAlign: 'right', color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -653,59 +665,46 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
 
                 return (
                   <tr key={apt.id}>
-                    <td style={{ fontWeight: '700' }}>
-                      <div style={{ color: '#0284c7', fontSize: '0.92rem' }}>#{apt.id}</div>
-                      {apt.verification_code && (
-                        <div 
-                          style={{ 
-                            fontFamily: 'monospace', 
-                            fontSize: '0.72rem', 
-                            color: '#0284c7', 
-                            letterSpacing: '0.04em',
-                            background: '#e0f2fe',
-                            border: '1px solid #bae6fd',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            marginTop: '3px',
-                            display: 'inline-block',
-                            fontWeight: 700
-                          }}
-                          title={`Patient Verification Code: ${apt.verification_code}`}
-                        >
-                          {apt.verification_code}
-                        </div>
-                      )}
-                    </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          background: '#f1f5f9',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          background: '#e0f2fe',
                           color: '#0284c7',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
-                          fontWeight: 700
+                          fontWeight: 800
                         }}>
-                          <User size={15} />
+                          <User size={17} />
                         </div>
                         <div>
-                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', display: 'block' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.94rem', display: 'block' }}>
                             {apt.patient_name}
                           </span>
                           {apt.patient_id && currentUser && apt.patient_id === currentUser.id && (
-                            <span className="role-pill patient" style={{ fontSize: '0.62rem', padding: '1px 6px', marginTop: '2px', display: 'inline-block' }}>
-                              You
+                            <span style={{
+                              fontSize: '0.64rem',
+                              padding: '2px 8px',
+                              marginTop: '3px',
+                              display: 'inline-block',
+                              background: '#7c3aed',
+                              color: '#ffffff',
+                              borderRadius: '999px',
+                              fontWeight: 800,
+                              letterSpacing: '0.04em'
+                            }}>
+                              YOU
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div style={{ color: '#0f172a', fontSize: '0.88rem', fontWeight: 700 }}>
+                      <div style={{ color: '#0f172a', fontSize: '0.92rem', fontWeight: 800 }}>
                         {new Date(apt.appointment_datetime).toLocaleDateString(undefined, {
                           weekday: 'short',
                           month: 'short',
@@ -713,32 +712,34 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                           year: 'numeric',
                         })}
                       </div>
-                      <small style={{ color: '#64748b', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                      <div style={{ display: 'inline-block', marginTop: '3px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '2px 8px', color: '#1e293b', fontWeight: 700, fontSize: '0.78rem' }}>
                         {new Date(apt.appointment_datetime).toLocaleTimeString(undefined, {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
-                      </small>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <Stethoscope size={14} color="#0284c7" />
-                        <span style={{ fontWeight: 600, color: '#334155' }}>{apt.doctor}</span>
                       </div>
                     </td>
                     <td>
-                      <span className="type-badge" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '3px 8px', fontSize: '0.74rem', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Stethoscope size={15} />
+                        </div>
+                        <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>{apt.doctor}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="type-badge" style={{ background: '#f8fafc', color: '#1e293b', border: '1.5px solid #cbd5e1', borderRadius: '8px', padding: '4px 10px', fontSize: '0.78rem', fontWeight: 750, display: 'inline-block' }}>
                         {apt.appointment_type}
                       </span>
                     </td>
                     <td>{getStatusBadge(apt.status, apt.is_verified, apt.appointment_datetime)}</td>
-                    <td style={{ maxWidth: '200px', fontSize: '0.82rem', color: '#475569' }}>
+                    <td style={{ maxWidth: '220px', fontSize: '0.84rem' }}>
                       {apt.notes ? (
-                        <span title={apt.notes} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                        <span title={apt.notes} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, color: '#1e293b' }}>
                           {apt.notes}
                         </span>
                       ) : (
-                        <em style={{ color: '#94a3b8' }}>None</em>
+                        <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>None</span>
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -896,7 +897,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
                     {isPatient 
                       ? (isRescheduling ? 'Reschedule Consultation' : 'Manage Consultation')
-                      : `Manage Appointment #${editingApt.id}`}
+                      : 'Manage Consultation Details'}
                   </h3>
                   <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
                     {isRescheduling ? 'Select a new date & time slot' : 'Update status, reschedule, or add notes'}
@@ -1167,7 +1168,7 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                 Delete Consultation?
               </h3>
               <p style={{ color: '#64748b', fontSize: '0.86rem', lineHeight: 1.5, margin: '0 0 18px' }}>
-                Are you sure you want to delete appointment <strong>#{appointmentToDelete.id}</strong>?
+                Are you sure you want to delete appointment with <strong>{appointmentToDelete.doctor}</strong>?
               </p>
 
               <div style={{
