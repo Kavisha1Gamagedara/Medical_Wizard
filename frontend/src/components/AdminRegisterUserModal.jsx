@@ -123,22 +123,48 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-container" style={{ maxWidth: '580px' }}>
+      <div className="modal-container" style={{ maxWidth: '580px', borderRadius: '24px', overflow: 'hidden' }}>
         {/* Header */}
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="brand-logo-icon" style={{ width: '40px', height: '40px', background: 'rgba(6, 182, 212, 0.15)', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-              <UserPlus size={20} />
+        <div className="modal-header" style={{ padding: '22px 26px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #e0f2fe, #ccfbf1)',
+              border: '1.5px solid #bae6fd',
+              color: '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.12)'
+            }}>
+              <UserPlus size={22} color="#0284c7" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="badge-tag" style={{ margin: 0, padding: '2px 8px', fontSize: '0.68rem', background: 'rgba(244, 63, 94, 0.15)', borderColor: 'rgba(244, 63, 94, 0.3)', color: '#fca5a5' }}>
-                  <ShieldCheck size={11} />
+                <span style={{
+                  margin: 0,
+                  padding: '3px 10px',
+                  fontSize: '0.72rem',
+                  background: '#fff1f2',
+                  border: '1px solid #fecdd3',
+                  color: '#e11d48',
+                  fontWeight: 700,
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <ShieldCheck size={12} color="#e11d48" />
                   Admin Onboarding
                 </span>
               </div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0 0' }}>Register Clinical Account</h2>
-              <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: 0 }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 2px' }}>
+                Register Clinical Account
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
                 Onboard doctors, clinic staff, administrators, or patients directly.
               </p>
             </div>
@@ -149,7 +175,7 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form onSubmit={handleSubmit} className="modal-body" style={{ padding: '24px 26px' }}>
           {errorMsg && (
             <div className="alert-box alert-danger" style={{ marginBottom: '16px' }}>
               <AlertCircle size={18} />
@@ -158,17 +184,51 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
           )}
 
           {/* Role Selection Segmented Buttons */}
-          <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Assign Account Role *</span>
-              <span style={{ color: 'var(--text-accent)', fontSize: '0.72rem', fontWeight: 600 }}>RBAC Permission Tier</span>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ color: '#0f172a', fontWeight: 700 }}>Assign Account Role *</span>
+              <span style={{ color: '#0284c7', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                RBAC Permission Tier
+              </span>
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {[
-                { id: 'doctor', label: 'Doctor', icon: Stethoscope, color: 'var(--primary)' },
-                { id: 'staff', label: 'Staff', icon: Users, color: 'var(--emerald-accent)' },
-                { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'var(--danger)' },
-                { id: 'patient', label: 'Patient', icon: User, color: '#c084fc' },
+                { 
+                  id: 'doctor', 
+                  label: 'Doctor', 
+                  icon: Stethoscope, 
+                  selectedBg: '#ecfeff', 
+                  selectedBorder: '#06b6d4', 
+                  selectedColor: '#0e7490', 
+                  selectedIcon: '#0891b2' 
+                },
+                { 
+                  id: 'staff', 
+                  label: 'Staff', 
+                  icon: Users, 
+                  selectedBg: '#ecfdf5', 
+                  selectedBorder: '#10b981', 
+                  selectedColor: '#047857', 
+                  selectedIcon: '#059669' 
+                },
+                { 
+                  id: 'admin', 
+                  label: 'Admin', 
+                  icon: ShieldCheck, 
+                  selectedBg: '#fff1f2', 
+                  selectedBorder: '#f43f5e', 
+                  selectedColor: '#be123c', 
+                  selectedIcon: '#e11d48' 
+                },
+                { 
+                  id: 'patient', 
+                  label: 'Patient', 
+                  icon: User, 
+                  selectedBg: '#f5f3ff', 
+                  selectedBorder: '#8b5cf6', 
+                  selectedColor: '#6d28d9', 
+                  selectedIcon: '#7c3aed' 
+                },
               ].map((item) => {
                 const IconComponent = item.icon;
                 const isSelected = role === item.id;
@@ -178,23 +238,24 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                     type="button"
                     onClick={() => setRole(item.id)}
                     style={{
-                      padding: '10px 8px',
-                      borderRadius: '8px',
-                      border: isSelected ? `2px solid ${item.color}` : '1px solid var(--border-subtle)',
-                      background: isSelected ? 'rgba(6, 182, 212, 0.12)' : 'var(--bg-input)',
-                      color: isSelected ? '#fff' : 'var(--text-secondary)',
+                      padding: '12px 10px',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${item.selectedBorder}` : '1.5px solid #e2e8f0',
+                      background: isSelected ? item.selectedBg : '#ffffff',
+                      color: isSelected ? item.selectedColor : '#475569',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.78rem',
-                      fontWeight: isSelected ? 700 : 500,
-                      transition: 'all 0.2s ease'
+                      gap: '6px',
+                      fontSize: '0.82rem',
+                      fontWeight: isSelected ? 800 : 600,
+                      boxShadow: isSelected ? `0 4px 14px ${item.selectedBorder}33` : '0 2px 6px rgba(0, 0, 0, 0.02)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                     id={`btn-select-role-${item.id}`}
                   >
-                    <IconComponent size={16} color={isSelected ? item.color : 'var(--text-muted)'} />
+                    <IconComponent size={18} color={isSelected ? item.selectedIcon : '#94a3b8'} />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -205,13 +266,15 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
           {/* Doctor Specialization (Conditional) */}
           {role === 'doctor' && (
             <div className="form-group" style={{ 
-              background: 'rgba(6, 182, 212, 0.08)', 
-              border: '1px solid rgba(6, 182, 212, 0.25)', 
-              borderRadius: '8px', 
-              padding: '12px 16px' 
+              background: 'linear-gradient(135deg, #f0fdfa, #ecfeff)', 
+              border: '1.5px solid #99f6e4', 
+              borderRadius: '14px', 
+              padding: '14px 16px',
+              marginTop: '8px',
+              marginBottom: '16px'
             }}>
-              <label className="form-label" htmlFor="reg-specialty" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#67e8f9' }}>
-                <Stethoscope size={14} />
+              <label className="form-label" htmlFor="reg-specialty" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f766e', fontWeight: 800, marginBottom: '8px' }}>
+                <Stethoscope size={15} color="#0d9488" />
                 <span>Doctor Medical Specialization *</span>
               </label>
               <select
@@ -219,6 +282,15 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                 className="form-input role-select"
                 value={specialization}
                 onChange={(e) => setSpecialization(e.target.value)}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #a7f3d0',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  padding: '10px 14px',
+                  width: '100%'
+                }}
                 required
               >
                 {SPECIALTY_OPTIONS.map((spec) => (
@@ -230,7 +302,7 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                 <input
                   type="text"
                   className="form-input"
-                  style={{ marginTop: '8px' }}
+                  style={{ marginTop: '8px', background: '#ffffff', border: '1.5px solid #a7f3d0' }}
                   placeholder="Enter custom specialty (e.g. Oncology, Urology)..."
                   value={customSpecialization}
                   onChange={(e) => setCustomSpecialization(e.target.value)}
@@ -254,7 +326,7 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
-                <User size={16} className="input-icon" />
+                <User size={16} className="input-icon" color="#64748b" />
               </div>
             </div>
 
@@ -270,7 +342,7 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                   onChange={(e) => setUsername(e.target.value)}
                   required
                 />
-                <UserPlus size={16} className="input-icon" />
+                <UserPlus size={16} className="input-icon" color="#64748b" />
               </div>
             </div>
           </div>
@@ -289,28 +361,34 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                <Mail size={16} className="input-icon" />
+                <Mail size={16} className="input-icon" color="#64748b" />
               </div>
             </div>
 
             <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label className="form-label" htmlFor="reg-password">Password *</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" htmlFor="reg-password" style={{ margin: 0 }}>Password *</label>
                 <button
                   type="button"
                   onClick={generateRandomPassword}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary)',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    color: '#0284c7',
                     fontSize: '0.72rem',
                     cursor: 'pointer',
-                    padding: 0,
-                    fontWeight: 600
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
                   }}
-                  title="Generate a random password"
+                  title="Generate a secure random password"
                 >
-                  Generate
+                  <Sparkles size={11} color="#0284c7" />
+                  <span>Generate</span>
                 </button>
               </div>
               <div className="input-with-icon">
@@ -322,7 +400,7 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <KeyRound size={16} className="input-icon" />
+                <KeyRound size={16} className="input-icon" color="#64748b" />
               </div>
             </div>
           </div>
@@ -339,11 +417,11 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
-              <Phone size={16} className="input-icon" />
+              <Phone size={16} className="input-icon" color="#64748b" />
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="reg-bio">Clinical Notes / Department Bio (Optional)</label>
             <textarea
               id="reg-bio"
@@ -357,19 +435,45 @@ export default function AdminRegisterUserModal({ isOpen, onClose, onUserCreated 
           </div>
 
           {/* Modal Footer */}
-          <div className="modal-footer" style={{ marginTop: '16px' }}>
+          <div className="modal-footer" style={{ marginTop: '20px', padding: '16px 0 0 0', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button
               type="button"
               className="btn-cancel"
               onClick={handleClose}
               disabled={loading}
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                fontWeight: 600,
+                padding: '11px 22px',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="btn-submit"
-              style={{ width: 'auto', padding: '10px 24px', margin: 0 }}
+              style={{
+                width: 'auto',
+                padding: '11px 26px',
+                margin: 0,
+                background: 'linear-gradient(135deg, #0284c7, #0d9488)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.28)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
               disabled={loading}
               id="btn-confirm-register-user"
             >

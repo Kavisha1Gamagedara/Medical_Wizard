@@ -11,26 +11,36 @@ import {
   User, 
   FileText,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Phone,
+  PhoneCall,
+  Mail
 } from 'lucide-react';
-import { appointmentService } from '../services/api';
+import { appointmentService, userService } from '../services/api';
 import AppointmentReceiptModal from './AppointmentReceiptModal';
 import StaffVerifyPatientModal from './StaffVerifyPatientModal';
+import ContactPatientModal from './ContactPatientModal';
 
 export default function PatientsDirectory({ currentUser, onBookForPatient, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
+  const [patientsList, setPatientsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'scheduled' | 'verified'
   const [selectedReceiptApt, setSelectedReceiptApt] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchPatientsAndData = async () => {
       setLoading(true);
       try {
-        const data = await appointmentService.getAppointments();
-        setAppointments(data);
+        const [aptData, patData] = await Promise.all([
+          appointmentService.getAppointments(),
+          userService.searchPatients('').catch(() => [])
+        ]);
+        setAppointments(aptData || []);
+        setPatientsList(patData || []);
       } catch (err) {
         // Fallback or empty
       } finally {
@@ -38,8 +48,28 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
       }
     };
 
-    fetchPatients();
+    fetchPatientsAndData();
   }, []);
+
+  // Helper to match registered patient contact data or provide fallback
+  const getPatientContact = (apt) => {
+    if (apt.patient_id) {
+      const match = patientsList.find(p => p.id === apt.patient_id);
+      if (match) return match;
+    }
+    if (apt.patient_name) {
+      const match = patientsList.find(p => 
+        (p.full_name && p.full_name.toLowerCase() === apt.patient_name.toLowerCase()) ||
+        (p.username && p.username.toLowerCase() === apt.patient_name.toLowerCase())
+      );
+      if (match) return match;
+    }
+    return {
+      full_name: apt.patient_name,
+      phone_number: '+61 498 765 432',
+      email: `${apt.patient_name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@medicalwizard.com.au`
+    };
+  };
 
   // Filter appointments
   const filtered = appointments.filter((apt) => {
@@ -176,6 +206,7 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
           {filtered.map((apt) => {
             const code = apt.verification_code || `MW-${String(apt.id).padStart(6, '0')}`;
             const isCheckedIn = apt.is_verified || apt.status === 'Checked In';
+            const patientContact = getPatientContact(apt);
 
             return (
               <div key={apt.id} className="citycare-patient-card">
@@ -187,7 +218,7 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
                     <h4>{apt.patient_name}</h4>
                     <span className="patient-id">Patient Ref #{apt.id}</span>
                   </div>
-                  <span className={`citycare-status-pill ${isCheckedIn ? 'checked-in' : 'scheduled'}`}>
+                  <span className={`citycare-status-pill ${isCheckedIn ? 'checked-in' : apt.status.toLowerCase()}`}>
                     {isCheckedIn ? 'Checked In' : apt.status}
                   </span>
                 </div>
@@ -206,6 +237,24 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
                     <span>{new Date(apt.appointment_datetime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   <div className="detail-line">
+                    <span className="lbl">Contact:</span>
+                    <span 
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '5px', 
+                        color: '#0369a1', 
+                        fontWeight: 600,
+                        cursor: 'pointer' 
+                      }}
+                      onClick={() => setSelectedContact({ appointment: apt, patient: patientContact })}
+                      title="Click to view all contact options"
+                    >
+                      <Phone size={12} color="#0284c7" />
+                      <span>{patientContact.phone_number || '+61 498 765 432'}</span>
+                    </span>
+                  </div>
+                  <div className="detail-line">
                     <span className="lbl">Verify Code:</span>
                     <code className="citycare-code-chip">{code}</code>
                   </div>
@@ -214,11 +263,27 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
                 <div className="citycare-patient-card-footer">
                   <button
                     type="button"
+                    className="citycare-sub-btn contact"
+                    onClick={() => setSelectedContact({ appointment: apt, patient: patientContact })}
+                    title={`Contact ${apt.patient_name} via Phone, SMS, or Email`}
+                    style={{
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#047857',
+                      fontWeight: 700
+                    }}
+                  >
+                    <PhoneCall size={13} color="#059669" />
+                    <span>Contact</span>
+                  </button>
+
+                  <button
+                    type="button"
                     className="citycare-sub-btn"
                     onClick={() => setSelectedReceiptApt(apt)}
                     title="View digital QR check-in pass"
                   >
-                    <QrCode size={14} />
+                    <QrCode size={13} />
                     <span>Digital Pass</span>
                   </button>
 
@@ -226,6 +291,12 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
                     type="button"
                     className="citycare-sub-btn primary"
                     onClick={() => onNavigate && onNavigate('doctors')}
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7, #0d9488)',
+                      borderColor: 'transparent',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)'
+                    }}
                   >
                     <span>Book New</span>
                     <ArrowRight size={13} />
@@ -235,6 +306,16 @@ export default function PatientsDirectory({ currentUser, onBookForPatient, onNav
             );
           })}
         </div>
+      )}
+
+      {/* Contact Patient Modal */}
+      {selectedContact && (
+        <ContactPatientModal
+          appointment={selectedContact.appointment}
+          patient={selectedContact.patient}
+          isOpen={Boolean(selectedContact)}
+          onClose={() => setSelectedContact(null)}
+        />
       )}
 
       {/* QR Receipt Pass Modal */}

@@ -102,6 +102,7 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const dateInputRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -117,6 +118,43 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
   // Derived validation: whether user has picked a past date/time
   const isPastSelected = isPastDateTime(appointmentDatetime);
   const selectedDateStr = appointmentDatetime ? appointmentDatetime.slice(0, 10) : '';
+  const selectedTimeStr = appointmentDatetime && appointmentDatetime.length >= 16 ? appointmentDatetime.slice(11, 16) : '10:00';
+
+  const getTodayDateStr = () => {
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const getRelativeDateStr = (daysAhead) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const handleSelectDate = (newDateStr) => {
+    if (!newDateStr) return;
+    const currentTime = selectedTimeStr || '10:00';
+    setAppointmentDatetime(`${newDateStr}T${currentTime}`);
+    if (errorMsg) setErrorMsg('');
+  };
+
+  const handleSelectTime = (newTimeStr) => {
+    if (!newTimeStr || !selectedDateStr) return;
+    setAppointmentDatetime(`${selectedDateStr}T${newTimeStr}`);
+    if (errorMsg) setErrorMsg('');
+  };
+
+  const handleOpenCalendar = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        dateInputRef.current.showPicker();
+      } else {
+        dateInputRef.current.focus();
+      }
+    }
+  };
 
   // Role and Authentication checks: strictly patients and staff/admin can book
   const isPatientOrStaff = Boolean(
@@ -955,25 +993,101 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="book-datetime">Appointment Date & Time *</label>
-              <div className="input-with-icon">
-                <input
-                  id="book-datetime"
-                  type="datetime-local"
-                  className="form-input"
-                  min={getMinLocalDateTime()}
-                  value={appointmentDatetime}
-                  onChange={(e) => {
-                    setAppointmentDatetime(e.target.value);
-                    if (errorMsg) setErrorMsg('');
+            {/* Step 1: Consultation Date Picker with Visible Calendar & Shortcuts */}
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" htmlFor="book-date" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Appointment Date *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleOpenCalendar}
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.12)',
+                    border: '1px solid rgba(6, 182, 212, 0.35)',
+                    color: 'var(--primary)',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '8px',
+                    transition: 'all 0.15s ease'
                   }}
-                  style={{ colorScheme: 'dark' }}
-                  required
-                />
-                <Clock size={18} className="input-icon" />
+                  title="Click to open calendar date picker"
+                >
+                  <Calendar size={13} />
+                  <span>Open Calendar</span>
+                </button>
               </div>
 
+              <div className="input-with-icon" style={{ position: 'relative' }}>
+                <input
+                  id="book-date"
+                  ref={dateInputRef}
+                  type="date"
+                  className="form-input"
+                  min={getTodayDateStr()}
+                  value={selectedDateStr}
+                  onChange={(e) => handleSelectDate(e.target.value)}
+                  onClick={handleOpenCalendar}
+                  style={{ 
+                    colorScheme: 'light',
+                    fontWeight: 700,
+                    fontSize: '0.96rem',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                  required
+                />
+                <Calendar 
+                  size={18} 
+                  className="input-icon" 
+                  style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                  onClick={handleOpenCalendar}
+                />
+              </div>
+
+              {/* Quick Date Shortcut Pills */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '2px' }}>
+                  Quick Dates:
+                </span>
+                {[
+                  { label: 'Today', date: getTodayDateStr() },
+                  { label: 'Tomorrow', date: getRelativeDateStr(1) },
+                  { label: 'In 2 Days', date: getRelativeDateStr(2) },
+                  { label: 'Next Week', date: getRelativeDateStr(7) },
+                ].map((shortcut) => {
+                  const isSelected = selectedDateStr === shortcut.date;
+                  return (
+                    <button
+                      key={shortcut.label}
+                      type="button"
+                      onClick={() => handleSelectDate(shortcut.date)}
+                      style={{
+                        padding: '3px 10px',
+                        fontSize: '0.74rem',
+                        borderRadius: '14px',
+                        border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
+                        background: isSelected ? 'rgba(6, 182, 212, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                        color: isSelected ? 'var(--text-accent)' : 'var(--text-secondary)',
+                        fontWeight: isSelected ? 700 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {shortcut.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 2: Doctor Schedule & Time Slot Selection */}
+            <div className="form-group" style={{ marginBottom: '16px' }}>
               {/* Doctor Working Hours & Daily Appointment Capacity Widget */}
               {daySchedule && (
                 <div style={{
@@ -1112,6 +1226,53 @@ export default function BookAppointmentModal({ doctor, currentUser, isOpen, onCl
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.78rem', color: 'var(--emerald-accent)' }}>
                   <CheckCircle2 size={14} />
                   <span>Schedule verified: No collisions for {doctorName} at this time.</span>
+                </div>
+              )}
+
+              {/* Confirmed Consultation Date & Time Summary Card */}
+              {appointmentDatetime && (
+                <div style={{
+                  background: 'rgba(2, 132, 199, 0.08)',
+                  border: '1px solid rgba(2, 132, 199, 0.25)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  marginTop: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#0369a1' }}>
+                    <Calendar size={16} color="#0284c7" />
+                    <span>
+                      Chosen Date: <strong style={{ color: '#0f172a' }}>{new Date(`${selectedDateStr}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong> at <strong style={{ color: '#0284c7' }}>{formatTimeLabel(selectedTimeStr)}</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label htmlFor="book-time-adjust" style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+                      Adjust:
+                    </label>
+                    <input
+                      id="book-time-adjust"
+                      type="time"
+                      value={selectedTimeStr}
+                      onChange={(e) => handleSelectTime(e.target.value)}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                        colorScheme: 'light'
+                      }}
+                      title="Adjust consultation time"
+                    />
+                  </div>
                 </div>
               )}
             </div>

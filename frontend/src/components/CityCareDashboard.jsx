@@ -28,7 +28,8 @@ import {
   RefreshCw,
   PlusCircle,
   User,
-  Lock
+  Lock,
+  LayoutDashboard
 } from 'lucide-react';
 import { appointmentService, doctorService, userService, authService } from '../services/api';
 import citycareHeroBg from '../assets/citycare_hero_bg.jpg';
@@ -41,7 +42,7 @@ import PatientsDirectory from './PatientsDirectory';
 import AdminRegisterUserModal from './AdminRegisterUserModal';
 import StaffVerifyPatientModal from './StaffVerifyPatientModal';
 
-export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin, onOpenVerifyCheckIn }) {
+export default function CityCareDashboard({ currentUser, isHomeView = false, onNavigate, onOpenLogin, onOpenVerifyCheckIn }) {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'system';
   const isDoctor = currentUser?.role === 'doctor';
   const isStaff = currentUser?.role === 'staff';
@@ -228,9 +229,41 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
   const checkinVerificationRate = Math.round(((stats.checkedInCount + stats.completedCount) / totalApts) * 100);
 
   // =========================================================================
-  // RBAC VIEW 1: GUEST / SIGNED OUT (NO AUTHENTICATION)
+  // RBAC VIEW 1: GUEST / SIGNED OUT (NO AUTHENTICATION) OR HOME TAB VIEW
   // =========================================================================
-  if (isGuest) {
+  if (isGuest || isHomeView) {
+    const getLoggedInAction = () => {
+      if (!currentUser) return null;
+      if (currentUser.role === 'patient') {
+        return {
+          label: 'View My Appointments & QR Pass',
+          target: 'appointments',
+          icon: Calendar
+        };
+      }
+      if (currentUser.role === 'admin') {
+        return {
+          label: 'Go to Admin Dashboard',
+          target: 'dashboard',
+          icon: ShieldCheck
+        };
+      }
+      if (currentUser.role === 'doctor') {
+        return {
+          label: 'Go to Clinical Dashboard',
+          target: 'dashboard',
+          icon: Stethoscope
+        };
+      }
+      return {
+        label: 'Go to Staff Dashboard',
+        target: 'dashboard',
+        icon: LayoutDashboard
+      };
+    };
+
+    const loggedInAction = getLoggedInAction();
+
     return (
       <div className="citycare-outer-frame" id="home-landing-view">
         {/* Guest Public Welcome Header Card */}
@@ -242,7 +275,11 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
           <div className="guest-hero-content">
             <div className="guest-badge-pill">
               <Sparkles size={14} color="#0284c7" />
-              <span>CityCare Medical Wizard &bull; Clinical Healthcare Portal</span>
+              {currentUser ? (
+                <span>Welcome back, {currentUser.full_name || currentUser.username} ({currentUser.role.toUpperCase()}) &bull; CityCare Portal</span>
+              ) : (
+                <span>CityCare Medical Wizard &bull; Clinical Healthcare Portal</span>
+              )}
             </div>
 
             <h1 className="guest-hero-title">
@@ -253,15 +290,35 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
             </p>
 
             <div className="guest-cta-row">
-              <button
-                type="button"
-                className="btn-guest-primary"
-                onClick={() => onNavigate && onNavigate('staff')}
-                id="btn-guest-signin"
-              >
-                <User size={16} />
-                <span>Sign In / Patient Registration</span>
-              </button>
+              {currentUser && loggedInAction ? (
+                <button
+                  type="button"
+                  className="btn-guest-primary"
+                  onClick={() => onNavigate && onNavigate(loggedInAction.target)}
+                  id="btn-logged-in-action"
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0d9488)',
+                    boxShadow: '0 4px 16px rgba(2, 132, 199, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <loggedInAction.icon size={16} />
+                  <span>{loggedInAction.label}</span>
+                  <ArrowRight size={15} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-guest-primary"
+                  onClick={() => onNavigate && onNavigate('staff')}
+                  id="btn-guest-signin"
+                >
+                  <User size={16} />
+                  <span>Sign In / Patient Registration</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -291,8 +348,12 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
             <div className="pillar-icon-box teal"><QrCode size={22} /></div>
             <h3>Digital Arrival QR Pass</h3>
             <p>Every confirmed booking generates a unique verification code and printable QR pass for express front-desk check-in.</p>
-            <button type="button" className="pillar-link-btn" onClick={() => onNavigate && onNavigate('staff')}>
-              Access Pass Portal &rarr;
+            <button 
+              type="button" 
+              className="pillar-link-btn" 
+              onClick={() => onNavigate && onNavigate(currentUser ? (currentUser.role === 'patient' ? 'appointments' : 'dashboard') : 'staff')}
+            >
+              {currentUser ? (currentUser.role === 'patient' ? 'View My QR Pass →' : 'Verify Patient Passes →') : 'Access Pass Portal →'}
             </button>
           </div>
 
@@ -300,8 +361,12 @@ export default function CityCareDashboard({ currentUser, onNavigate, onOpenLogin
             <div className="pillar-icon-box purple"><ShieldCheck size={22} /></div>
             <h3>Secure Patient Portal</h3>
             <p>Patients manage scheduled consultations, review doctor availability slots, and download official clinical receipts.</p>
-            <button type="button" className="pillar-link-btn" onClick={() => onNavigate && onNavigate('staff')}>
-              Sign In to Portal &rarr;
+            <button 
+              type="button" 
+              className="pillar-link-btn" 
+              onClick={() => onNavigate && onNavigate(currentUser ? (currentUser.role === 'patient' ? 'appointments' : 'dashboard') : 'staff')}
+            >
+              {currentUser ? (currentUser.role === 'patient' ? 'Open Patient Portal →' : 'Go to Dashboard →') : 'Sign In to Portal →'}
             </button>
           </div>
         </div>

@@ -291,3 +291,47 @@ def test_past_appointments_cannot_be_edited(client, staff_headers, db_session):
     )
     assert res.status_code == 400
     assert "cannot be edited" in res.json()["detail"].lower()
+
+
+def test_verify_expired_appointment_returns_error(client, staff_headers, db_session):
+    """
+    Test that verifying an expired appointment (past unattended appointment or status='Expired')
+    returns a 400 Bad Request error explicitly stating that the appointment has Expired.
+    """
+    from app.models.appointment import Appointment
+
+    past_time = datetime.now(timezone.utc) - timedelta(hours=5)
+    apt = Appointment(
+        patient_name="Expired Pass Patient",
+        doctor="Dr. Lisa Ray",
+        appointment_datetime=past_time,
+        appointment_type="Specialist Consultation",
+        status="Scheduled",
+        is_verified=False,
+        verification_code="MW-EXPTST",
+    )
+    db_session.add(apt)
+    db_session.commit()
+    db_session.refresh(apt)
+
+    # 1. Looking up the verification code updates status to Expired
+    lookup_res = client.get("/api/v1/appointments/verify/MW-EXPTST", headers=staff_headers)
+    assert lookup_res.status_code == 200
+    assert lookup_res.json()["status"] == "Expired"
+
+    # 2. Staff attempts to verify check-in for this expired appointment
+    verify_res = client.post(
+        "/api/v1/appointments/verify",
+        json={"verification_code": "MW-EXPTST", "notes": "Arrived way too late"},
+        headers=staff_headers,
+    )
+    assert verify_res.status_code == 400
+    detail = verify_res.json()["detail"]
+    assert "Expired" in detail
+    assert "cannot be verified" in detail or "passed without attendance" in detail
+
+    # 3. Verify appointment remains unverified and expired
+    db_session.refresh(apt)
+    assert apt.status == "Expired"
+    assert apt.is_verified is False
+

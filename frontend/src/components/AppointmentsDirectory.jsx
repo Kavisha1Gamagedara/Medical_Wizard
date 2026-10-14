@@ -15,14 +15,17 @@ import {
   Plus,
   Lock,
   ArrowRight,
-  QrCode
+  QrCode,
+  PhoneCall
 } from 'lucide-react';
 import { appointmentService } from '../services/api';
 import AppointmentReceiptModal from './AppointmentReceiptModal';
 import StaffVerifyPatientModal from './StaffVerifyPatientModal';
+import ContactPatientModal from './ContactPatientModal';
 
 export default function AppointmentsDirectory({ onNewBookingClick, currentUser, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
+  const [selectedContactApt, setSelectedContactApt] = useState(null);
   const [stats, setStats] = useState({ total: 0, scheduled: 0, completed: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,6 +73,11 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
   };
 
   const handleQuickCheckin = async (apt) => {
+    const isPast = new Date(apt.appointment_datetime).getTime() < Date.now();
+    if (apt.status === 'Expired' || (apt.status === 'Scheduled' && isPast && !apt.is_verified)) {
+      showFeedback(`Verification Failed: Appointment #${apt.id} is Expired and cannot be checked in.`, 'error');
+      return;
+    }
     setQuickVerifyingId(apt.id);
     try {
       const code = apt.verification_code || `MW-${String(apt.id).padStart(6, '0')}`;
@@ -673,6 +681,23 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                           <QrCode size={14} />
                         </button>
 
+                        {/* Contact Patient Action Button */}
+                        {(isAdmin || isStaff || isDoctor) && (
+                          <button
+                            type="button"
+                            className="btn-action-icon"
+                            onClick={() => setSelectedContactApt(apt)}
+                            title={`Contact patient (${apt.patient_name})`}
+                            style={{ 
+                              color: '#059669', 
+                              borderColor: '#a7f3d0', 
+                              background: '#ecfdf5' 
+                            }}
+                          >
+                            <PhoneCall size={14} />
+                          </button>
+                        )}
+
                         {/* Quick Front Desk QR Check-in Button for Staff/Admin (marks Completed) */}
                         {(isAdmin || isStaff) && apt.status === 'Scheduled' && !isPast && (
                           <button
@@ -939,6 +964,20 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
           </div>
         </div>
       )}
+      {/* Contact Patient Modal */}
+      {selectedContactApt && (
+        <ContactPatientModal
+          appointment={selectedContactApt}
+          patient={{
+            full_name: selectedContactApt.patient_name,
+            phone_number: '+61 498 765 432',
+            email: `${selectedContactApt.patient_name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@medicalwizard.com.au`
+          }}
+          isOpen={Boolean(selectedContactApt)}
+          onClose={() => setSelectedContactApt(null)}
+        />
+      )}
+
       {/* Appointment Receipt & QR Modal */}
       {selectedReceiptApt && (
         <AppointmentReceiptModal
