@@ -35,15 +35,6 @@ export default function LoginCard({ onLoginSuccess }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // 1-Click Demo Quick Fill for Evaluators
-  const handleDemoFill = (role, username, pwd) => {
-    setIsRegisterMode(false);
-    setUsernameOrEmail(username);
-    setPassword(pwd);
-    setErrorMsg('');
-    setSuccessMsg(`Auto-filled credentials for ${role.toUpperCase()} role.`);
-  };
-
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -75,6 +66,21 @@ export default function LoginCard({ onLoginSuccess }) {
 
     if (!regEmail.trim() || !regUsername.trim() || !regPassword) {
       setErrorMsg('Email, username, and password are required.');
+      return;
+    }
+
+    if (!regEmail.trim().includes('@') || !regEmail.trim().includes('.')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    if (regUsername.trim().length < 3) {
+      setErrorMsg('Username must be at least 3 characters.');
+      return;
+    }
+
+    if (regPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
       return;
     }
 
@@ -377,66 +383,6 @@ export default function LoginCard({ onLoginSuccess }) {
           </button>
         </form>
       )}
-
-      {/* Quick Demo Credentials Panel */}
-      <div className="demo-role-quick-fill">
-        <div className="demo-role-title">
-          <Sparkles size={14} color="var(--primary)" />
-          <span>Quick Demo Logins (Click to autofill)</span>
-        </div>
-        <div className="demo-role-buttons" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))' }}>
-          <button
-            type="button"
-            className="demo-role-btn"
-            onClick={() => handleDemoFill('patient', 'patient', 'PatientPassword123!')}
-            style={{ borderColor: 'rgba(168, 85, 247, 0.4)' }}
-          >
-            <User size={15} color="#c084fc" />
-            <span style={{ color: '#d8b4fe' }}>Patient</span>
-            <small>Alice</small>
-          </button>
-
-          <button
-            type="button"
-            className="demo-role-btn"
-            onClick={() => handleDemoFill('neurosurgeon', 'drsmith', 'DoctorPassword123!')}
-          >
-            <Stethoscope size={15} color="var(--primary)" />
-            <span>Doctor</span>
-            <small>Neuro</small>
-          </button>
-
-          <button
-            type="button"
-            className="demo-role-btn"
-            onClick={() => handleDemoFill('dentist', 'drjones', 'DoctorPassword123!')}
-          >
-            <Stethoscope size={15} color="var(--text-accent)" />
-            <span>Doctor</span>
-            <small>Dentist</small>
-          </button>
-
-          <button
-            type="button"
-            className="demo-role-btn"
-            onClick={() => handleDemoFill('staff', 'reception', 'StaffPassword123!')}
-          >
-            <Users size={15} color="var(--emerald-accent)" />
-            <span>Staff</span>
-            <small>Desk</small>
-          </button>
-
-          <button
-            type="button"
-            className="demo-role-btn"
-            onClick={() => handleDemoFill('admin', 'admin', 'AdminPassword123!')}
-          >
-            <ShieldCheck size={15} color="var(--danger)" />
-            <span>Admin</span>
-            <small>Admin</small>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

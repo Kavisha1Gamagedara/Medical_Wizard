@@ -64,15 +64,6 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
     }
   }, []);
 
-  // Quick 1-Click Demo Fill for Evaluators
-  const handleDemoFill = (role, userVal, passVal) => {
-    setIsRegisterMode(false);
-    setUsernameOrEmail(userVal);
-    setPassword(passVal);
-    setErrorMsg('');
-    setSuccessMsg(`Auto-filled ${role.toUpperCase()} test credentials.`);
-  };
-
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -476,44 +467,7 @@ export default function CreativeAuthPortal({ onLoginSuccess, onNavigate }) {
               </form>
             )}
 
-            {/* Evaluator Quick 1-Click Demo Fillers */}
-            <div className="creative-demo-fill-box">
-              <span className="demo-fill-label">1-Click Test Accounts:</span>
-              <div className="demo-fill-btns-row">
-                <button
-                  type="button"
-                  className="demo-pill-btn"
-                  onClick={() => handleDemoFill('Admin', 'admin', 'admin123')}
-                  title="Username: admin | Password: admin123"
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  className="demo-pill-btn"
-                  onClick={() => handleDemoFill('Doctor', 'drchen', 'doctor123')}
-                  title="Username: drchen | Password: doctor123"
-                >
-                  Doctor
-                </button>
-                <button
-                  type="button"
-                  className="demo-pill-btn"
-                  onClick={() => handleDemoFill('Staff', 'reception', 'staff123')}
-                  title="Username: reception | Password: staff123"
-                >
-                  Staff
-                </button>
-                <button
-                  type="button"
-                  className="demo-pill-btn"
-                  onClick={() => handleDemoFill('Patient', 'patient', 'patient123')}
-                  title="Username: patient | Password: patient123"
-                >
-                  Patient
-                </button>
-              </div>
-            </div>
+            {/* Back to Home Button */}
 
             {/* Back to Home Button */}
             <button

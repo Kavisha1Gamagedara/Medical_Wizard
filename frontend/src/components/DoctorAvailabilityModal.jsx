@@ -86,6 +86,29 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
       return;
     }
 
+    // Mathematical validation: Available minutes vs slot duration and capacity
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    const maxAptsNum = parseInt(maxAppointments, 10);
+    const slotMinsNum = parseInt(slotDuration, 10);
+
+    const maxAllowedSlotDuration = Math.floor(totalMinutes / maxAptsNum);
+
+    if (maxAllowedSlotDuration < 5) {
+      setErrorMsg(
+        `Mathematical Conflict: Cannot schedule ${maxAptsNum} appointments across ${totalMinutes} available minutes. Each appointment would be under 5 minutes.`
+      );
+      return;
+    }
+
+    if (maxAptsNum * slotMinsNum > totalMinutes) {
+      setErrorMsg(
+        `Mathematical Conflict: ${maxAptsNum} appointments at ${slotMinsNum} minutes each requires ${maxAptsNum * slotMinsNum} minutes, but your shift only has ${totalMinutes} minutes (${startTime} to ${endTime}). For ${maxAptsNum} appointments in ${totalMinutes} minutes, your maximum slot duration is ${maxAllowedSlotDuration} minutes.`
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -595,6 +618,64 @@ export default function DoctorAvailabilityModal({ doctor, currentUser, isOpen, o
                 </small>
               </div>
             </div>
+
+            {/* Dynamic Mathematical Allocation Helper */}
+            {(() => {
+              const [sH, sM] = (startTime || '09:00').split(':').map(Number);
+              const [eH, eM] = (endTime || '17:00').split(':').map(Number);
+              const totalMins = (eH * 60 + eM) - (sH * 60 + sM);
+              const numApts = parseInt(maxAppointments, 10) || 1;
+              const slotMins = parseInt(slotDuration, 10) || 30;
+              const maxSlotAllowed = totalMins > 0 ? Math.floor(totalMins / numApts) : 0;
+              const isExceeded = totalMins > 0 && (numApts * slotMins > totalMins);
+
+              return (
+                <div style={{
+                  background: isExceeded ? '#fef2f2' : '#f0fdfa',
+                  border: `1.5px solid ${isExceeded ? '#fca5a5' : '#99f6e4'}`,
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px'
+                }}>
+                  <div>
+                    <span style={{ fontWeight: 800, color: isExceeded ? '#b91c1c' : '#0f766e' }}>
+                      {isExceeded ? '⚠️ Capacity Overbooking:' : '⏱ Mathematical Slot Allocation:'}
+                    </span>{' '}
+                    <span style={{ color: isExceeded ? '#991b1b' : '#134e4a' }}>
+                      {totalMins > 0 ? `${totalMins} minutes available (${Math.floor(totalMins / 60)}h ${totalMins % 60}m)` : 'Invalid hours'}. For <strong>{numApts} appointments</strong>, max slot length is <strong>{maxSlotAllowed} min</strong>.
+                    </span>
+                  </div>
+                  {isExceeded && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (maxSlotAllowed >= 15) setSlotDuration(15);
+                        else if (maxSlotAllowed >= 10) setSlotDuration(10);
+                        else setMaxAppointments(Math.floor(totalMins / slotMins));
+                      }}
+                      style={{
+                        background: '#dc2626',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Auto-Fix Duration
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
               <label className="form-label" htmlFor="avail-notes" style={{ color: '#1e293b', fontWeight: 700, fontSize: '0.85rem', marginBottom: '6px' }}>

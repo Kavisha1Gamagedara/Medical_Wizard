@@ -260,6 +260,44 @@ def save_doctor_availability(
             detail="Valid doctor ID or doctor name is required.",
         )
 
+    # Mathematical validation for appointment slots vs working hours
+    t_start = parse_time_str(data.start_time)
+    t_end = parse_time_str(data.end_time)
+    start_minutes = t_start.hour * 60 + t_start.minute
+    end_minutes = t_end.hour * 60 + t_end.minute
+    total_available_minutes = end_minutes - start_minutes
+
+    if total_available_minutes <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="End time must be strictly later than start time.",
+        )
+
+    if data.max_appointments and data.max_appointments > 0:
+        # e.g.: 60 mins available with 4 appointments => slot duration cannot exceed 15 mins
+        max_possible_slot_duration = total_available_minutes // data.max_appointments
+        if max_possible_slot_duration < 5:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Mathematical Schedule Conflict: Cannot schedule {data.max_appointments} appointments in "
+                    f"{total_available_minutes} available minutes. Each appointment would be under 5 minutes."
+                ),
+            )
+
+        required_minutes = data.max_appointments * data.slot_duration_minutes
+        if required_minutes > total_available_minutes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Mathematical Schedule Conflict: {data.max_appointments} appointments at "
+                    f"{data.slot_duration_minutes} minutes each requires {required_minutes} minutes, "
+                    f"but only {total_available_minutes} minutes ({data.start_time} to {data.end_time}) "
+                    f"are available. For {data.max_appointments} appointments in {total_available_minutes} mins, "
+                    f"the maximum slot duration is {max_possible_slot_duration} minutes."
+                ),
+            )
+
     doc_user = db.query(User).filter(User.id == target_doctor_id).first()
     if not doc_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found.")

@@ -196,3 +196,56 @@ def test_doctor_marked_off_blocks_bookings(client, patient_headers):
     )
     assert res.status_code == status.HTTP_400_BAD_REQUEST
     assert "unavailable" in res.json()["detail"].lower()
+
+
+def test_mathematical_slot_duration_and_capacity_validation(client):
+    """
+    Test mathematical validation:
+    e.g. 1 hour availability (10:00 to 11:00 = 60 mins) and 4 appointments.
+    - 30-min slot duration is REJECTED (4 * 30 = 120 mins > 60 mins) -> 400 Bad Request.
+    - 15-min slot duration is ACCEPTED (4 * 15 = 60 mins <= 60 mins) -> 201 Created.
+    """
+    doc_token = register_and_login_doctor(client, "dr_math", "Dr. Alan Turing", "Neurologist")
+    headers = {"Authorization": f"Bearer {doc_token}"}
+
+    target_date = "2026-11-30"
+
+    # 1. Invalid configuration: 1 hour (10:00 - 11:00), 4 appointments, 30 min duration
+    # Mathematical conflict: 4 * 30 min = 120 min > 60 available mins
+    invalid_payload = {
+        "specific_date": target_date,
+        "start_time": "10:00",
+        "end_time": "11:00",
+        "max_appointments": 4,
+        "slot_duration_minutes": 30,
+        "is_available": True,
+    }
+    res_bad = client.post("/api/v1/doctors/availabilities", json=invalid_payload, headers=headers)
+    assert res_bad.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Mathematical Schedule Conflict" in res_bad.json()["detail"]
+    assert "15 minutes" in res_bad.json()["detail"]
+
+    # 2. Valid configuration: 1 hour (10:00 - 11:00), 4 appointments, 15 min duration
+    # Mathematical check passes: 4 * 15 min = 60 min <= 60 available mins
+    valid_payload = {
+        "specific_date": target_date,
+        "start_time": "10:00",
+        "end_time": "11:00",
+        "max_appointments": 4,
+        "slot_duration_minutes": 15,
+        "is_available": True,
+    }
+    res_good = client.post("/api/v1/doctors/availabilities", json=valid_payload, headers=headers)
+    assert res_good.status_code == status.HTTP_201_CREATED
+    rule_data = res_good.json()
+    assert rule_data["max_appointments"] == 4
+    assert rule_data["slot_duration_minutes"] == 15
+
+    # 3. Schedule produces exactly 4 fifteen-minute slots (10:00, 10:15, 10:30, 10:45)
+    res_sched = client.get(f"/api/v1/doctors/dr_math/schedule?date={target_date}")
+    assert res_sched.status_code == status.HTTP_200_OK
+    sched = res_sched.json()
+    assert len(sched["time_slots"]) == 4
+    times = [s["time"] for s in sched["time_slots"]]
+    assert times == ["10:00", "10:15", "10:30", "10:45"]
+
