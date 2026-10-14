@@ -425,6 +425,23 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
   // RBAC VIEW 2: PATIENT PORTAL
   // =========================================================================
   if (isPatient) {
+    const normalizeName = (str) => (str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
+    const patientNotifs = (() => {
+      try {
+        const all = JSON.parse(localStorage.getItem('mw_patient_notifications') || '[]');
+        return all.filter((n) => {
+          if (n.patientId && currentUser.id && Number(n.patientId) === Number(currentUser.id)) {
+            return true;
+          }
+          const currentNorm = normalizeName(currentUser.full_name || currentUser.username);
+          const notifNorm = normalizeName(n.patientName);
+          return Boolean(currentNorm && notifNorm && (currentNorm === notifNorm || currentNorm.includes(notifNorm) || notifNorm.includes(currentNorm)));
+        });
+      } catch {
+        return [];
+      }
+    })();
+
     return (
       <div className="citycare-outer-frame">
         <div className="patient-portal-header-card">
@@ -460,6 +477,104 @@ export default function CityCareDashboard({ currentUser, isHomeView = false, onN
             </button>
           </div>
         </div>
+
+        {/* Live Patient Notifications & Reminders Alert Banner */}
+        {patientNotifs.length > 0 && (
+          <div style={{ padding: '0 32px', marginTop: '16px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              border: '1.5px solid #bae6fd',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Bell size={16} />
+                  </div>
+                  <div>
+                    <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>
+                      Recent Clinic Notifications ({patientNotifs.length})
+                    </strong>
+                    <span style={{ fontSize: '0.74rem', color: '#0369a1', marginLeft: '8px', fontWeight: 600 }}>
+                      SMS / Email alerts sent for your appointments
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('mw_patient_notifications', JSON.stringify([]));
+                    window.dispatchEvent(new CustomEvent('mw_notification_created'));
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear all
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {patientNotifs.slice(0, 3).map((notif) => (
+                  <div
+                    key={notif.id}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                        <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.86rem' }}>
+                          {notif.title}
+                        </span>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: notif.channel === 'sms' ? '#fef3c7' : '#e0e7ff',
+                          color: notif.channel === 'sms' ? '#b45309' : '#4338ca'
+                        }}>
+                          {notif.channel ? notif.channel.toUpperCase() : 'ALERT'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>
+                        {notif.message}
+                      </div>
+                    </div>
+                    <small style={{ color: '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ padding: '24px 32px' }}>
           <AppointmentsDirectory 

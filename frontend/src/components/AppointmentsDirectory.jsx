@@ -16,16 +16,19 @@ import {
   Lock,
   ArrowRight,
   QrCode,
-  PhoneCall
+  PhoneCall,
+  Bell
 } from 'lucide-react';
 import { appointmentService } from '../services/api';
 import AppointmentReceiptModal from './AppointmentReceiptModal';
 import StaffVerifyPatientModal from './StaffVerifyPatientModal';
 import ContactPatientModal from './ContactPatientModal';
+import AppointmentReminderModal from './AppointmentReminderModal';
 
 export default function AppointmentsDirectory({ onNewBookingClick, currentUser, onNavigate }) {
   const [appointments, setAppointments] = useState([]);
   const [selectedContactApt, setSelectedContactApt] = useState(null);
+  const [selectedReminderApt, setSelectedReminderApt] = useState(null);
   const [stats, setStats] = useState({ total: 0, scheduled: 0, completed: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -42,10 +45,15 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
   const [statusFilter, setStatusFilter] = useState('all');
   const [scopeFilter, setScopeFilter] = useState(isPatient || isDoctor ? 'mine' : 'all');
 
-  // Edit State
+  // Edit / Reschedule State
   const [editingApt, setEditingApt] = useState(null);
   const [editStatus, setEditStatus] = useState('Scheduled');
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editDoctor, setEditDoctor] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editError, setEditError] = useState('');
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
 
   // Delete State
@@ -143,22 +151,66 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
     setEditingApt(apt);
     setEditStatus(apt.status);
     setEditNotes(apt.notes || '');
+    setEditError('');
+    setIsRescheduling(false);
+
+    if (apt.appointment_datetime) {
+      const d = new Date(apt.appointment_datetime);
+      const pad = (n) => String(n).padStart(2, '0');
+      const datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const timePart = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      setEditDate(datePart);
+      setEditTime(timePart);
+    } else {
+      setEditDate('');
+      setEditTime('');
+    }
+    setEditDoctor(apt.doctor || '');
   };
 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!editingApt) return;
+    setEditError('');
     setSaveLoading(true);
+
     try {
       const aptId = editingApt.id;
-      await appointmentService.updateAppointment(aptId, {
+      const payload = {
         status: editStatus,
         notes: editNotes.trim() || undefined,
-      });
+      };
+
+      // Reschedule date & time validation
+      if (isRescheduling) {
+        if (!editDate || !editTime) {
+          setEditError('Please select both a new date and time.');
+          setSaveLoading(false);
+          return;
+        }
+        const newDatetime = `${editDate}T${editTime}:00`;
+        const chosenTime = new Date(newDatetime).getTime();
+        if (chosenTime <= Date.now()) {
+          setEditError('Rescheduled date and time must be in the future.');
+          setSaveLoading(false);
+          return;
+        }
+        payload.appointment_datetime = newDatetime;
+        if ((isAdmin || isStaff) && editDoctor) {
+          payload.doctor = editDoctor;
+        }
+      }
+
+      await appointmentService.updateAppointment(aptId, payload);
       setEditingApt(null);
       await fetchAppointments();
-      showFeedback(`Appointment #${aptId} updated successfully.`);
+      showFeedback(
+        isRescheduling 
+          ? `Appointment #${aptId} successfully rescheduled to ${new Date(payload.appointment_datetime || editingApt.appointment_datetime).toLocaleDateString()} at ${payload.appointment_datetime ? new Date(payload.appointment_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}!`
+          : `Appointment #${aptId} updated successfully.`
+      );
     } catch (err) {
+      setEditError(err.message || 'Update failed.');
       showFeedback(`Update failed: ${err.message}`, 'error');
     } finally {
       setSaveLoading(false);
@@ -698,6 +750,23 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                           </button>
                         )}
 
+                        {/* Automated Reminder (SMS / Email) Button */}
+                        {(isAdmin || isStaff || (isPatient && apt.patient_id === currentUser?.id)) && apt.status === 'Scheduled' && !isPast && (
+                          <button
+                            type="button"
+                            className="btn-action-icon"
+                            onClick={() => setSelectedReminderApt(apt)}
+                            title="Send Automated Reminder & Status Notification (SMS/Email)"
+                            style={{
+                              color: '#6366f1',
+                              borderColor: '#c7d2fe',
+                              background: '#eef2ff'
+                            }}
+                          >
+                            <Bell size={14} />
+                          </button>
+                        )}
+
                         {/* Quick Front Desk QR Check-in Button for Staff/Admin (marks Completed) */}
                         {(isAdmin || isStaff) && apt.status === 'Scheduled' && !isPast && (
                           <button
@@ -774,13 +843,13 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
         )}
       </div>
 
-      {/* Edit Appointment Modal - Light Theme */}
+      {/* Edit & Reschedule Appointment Modal - Light Theme */}
       {editingApt && (
         <div className="modal-backdrop" style={{ zIndex: 1200 }}>
           <div
             className="modal-container"
             style={{
-              maxWidth: '480px',
+              maxWidth: '540px',
               background: '#ffffff',
               borderRadius: '24px',
               border: '1px solid #e2e8f0',
@@ -789,14 +858,56 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
             }}
           >
             <div className="modal-header" style={{ background: '#ffffff', borderBottom: '1px solid #f1f5f9', padding: '22px 26px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                {isPatient ? 'Cancel Consultation' : `Edit Appointment #${editingApt.id}`}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: isRescheduling ? '#e0f2fe' : '#f1f5f9',
+                  color: isRescheduling ? '#0284c7' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {isRescheduling ? <RefreshCw size={20} /> : <Edit size={18} />}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                    {isPatient 
+                      ? (isRescheduling ? 'Reschedule Consultation' : 'Manage Consultation')
+                      : `Manage Appointment #${editingApt.id}`}
+                  </h3>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {isRescheduling ? 'Select a new date & time slot' : 'Update status, reschedule, or add notes'}
+                  </span>
+                </div>
+              </div>
               <button type="button" className="modal-close-btn" onClick={() => setEditingApt(null)}>
                 &times;
               </button>
             </div>
+
             <form onSubmit={handleSaveEdit} className="modal-body" style={{ padding: '24px 26px' }}>
+              {/* Error Alert */}
+              {editError && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecdd3',
+                  color: '#b91c1c',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '16px'
+                }}>
+                  <AlertCircle size={16} />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              {/* Current Appointment Summary Card */}
               <div style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
@@ -806,17 +917,122 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                 fontSize: '0.86rem',
                 color: '#334155'
               }}>
-                <div style={{ marginBottom: '6px' }}>
-                  <strong style={{ color: '#0f172a' }}>Patient:</strong> {editingApt.patient_name}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div>
+                    <strong style={{ color: '#0f172a' }}>Patient:</strong> {editingApt.patient_name}
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: '#e2e8f0',
+                    color: '#334155'
+                  }}>
+                    Current: {editingApt.status}
+                  </span>
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <strong style={{ color: '#0f172a' }}>Doctor:</strong> {editingApt.doctor}
                 </div>
                 <div>
-                  <strong style={{ color: '#0f172a' }}>Scheduled Time:</strong> {new Date(editingApt.appointment_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  <strong style={{ color: '#0f172a' }}>Current Schedule:</strong> {new Date(editingApt.appointment_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                 </div>
               </div>
 
+              {/* Reschedule Toggle Tab */}
+              {editingApt.status === 'Scheduled' && (
+                <div style={{
+                  background: isRescheduling ? '#f0fdf4' : '#f8fafc',
+                  border: `1.5px solid ${isRescheduling ? '#86efac' : '#e2e8f0'}`,
+                  borderRadius: '14px',
+                  padding: '14px 18px',
+                  marginBottom: '18px',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isRescheduling ? '14px' : '0' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isRescheduling ? '#15803d' : '#0f172a' }}>
+                        📅 Reschedule Date &amp; Time
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        {isRescheduling 
+                          ? 'Choose a new future date and time for this consultation.'
+                          : 'Need to change the appointment date or time? Click here.'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsRescheduling(!isRescheduling)}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        borderRadius: '8px',
+                        border: isRescheduling ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                        background: isRescheduling ? '#16a34a' : '#ffffff',
+                        color: isRescheduling ? '#ffffff' : '#0284c7',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {isRescheduling ? 'Cancel Reschedule' : 'Change Date/Time'}
+                    </button>
+                  </div>
+
+                  {isRescheduling && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                          New Date *
+                        </label>
+                        <input
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            colorScheme: 'light'
+                          }}
+                          required={isRescheduling}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                          New Time *
+                        </label>
+                        <input
+                          type="time"
+                          value={editTime}
+                          onChange={(e) => setEditTime(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            colorScheme: 'light'
+                          }}
+                          required={isRescheduling}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Status Selector */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label" style={{ color: '#475569', fontWeight: 700, fontSize: '0.82rem', marginBottom: '6px', display: 'block' }}>
                   Status
@@ -836,9 +1052,16 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                 </select>
               </div>
 
+              {/* Notes Field */}
               <div className="form-group" style={{ marginBottom: '20px' }}>
                 <label className="form-label" style={{ color: '#475569', fontWeight: 700, fontSize: '0.82rem', marginBottom: '6px', display: 'block' }}>
-                  {isDoctor ? 'Clinical Consultation Notes' : isPatient ? 'Patient Cancellation Reason / Notes' : 'Clinical Notes'}
+                  {isDoctor 
+                    ? 'Clinical Assessment / Consultation Notes' 
+                    : isRescheduling 
+                    ? 'Reason for Rescheduling / Instructions'
+                    : isPatient 
+                    ? 'Cancellation Reason / Note for Clinic' 
+                    : 'Administrative / Clinical Notes'}
                 </label>
                 <textarea
                   className="form-input"
@@ -846,7 +1069,9 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder={
-                    isDoctor 
+                    isRescheduling
+                      ? 'e.g. Patient requested afternoon consultation due to personal commitment...'
+                      : isDoctor 
                       ? 'Add clinical assessment, prescriptions, or follow-up notes...' 
                       : isPatient 
                       ? 'State reason for cancellation or note for clinic...' 
@@ -863,10 +1088,23 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
                 <button
                   type="submit"
                   className="btn-submit"
-                  style={{ width: 'auto', padding: '10px 22px', borderRadius: '12px', background: isPatient ? '#e11d48' : '#0284c7', color: '#ffffff', fontWeight: 700 }}
+                  style={{ 
+                    width: 'auto', 
+                    padding: '10px 24px', 
+                    borderRadius: '12px', 
+                    background: isRescheduling 
+                      ? 'linear-gradient(135deg, #0284c7, #0d9488)' 
+                      : (isPatient && editStatus === 'Cancelled' ? '#e11d48' : '#0284c7'), 
+                    color: '#ffffff', 
+                    fontWeight: 700 
+                  }}
                   disabled={saveLoading}
                 >
-                  {saveLoading ? 'Saving...' : isPatient ? 'Confirm Cancellation' : 'Update Status'}
+                  {saveLoading 
+                    ? 'Processing...' 
+                    : isRescheduling 
+                    ? 'Confirm Reschedule' 
+                    : (isPatient && editStatus === 'Cancelled' ? 'Confirm Cancellation' : 'Update Appointment')}
                 </button>
               </div>
             </form>
@@ -996,6 +1234,18 @@ export default function AppointmentsDirectory({ onNewBookingClick, currentUser, 
         }}
         currentStaff={currentUser}
       />
+
+      {/* Automated Reminder (SMS / Email) Modal */}
+      {selectedReminderApt && (
+        <AppointmentReminderModal
+          appointment={selectedReminderApt}
+          isOpen={Boolean(selectedReminderApt)}
+          onClose={() => setSelectedReminderApt(null)}
+          onNotificationSent={({ patientName, channel }) => {
+            showFeedback(`Automated ${channel.toUpperCase()} reminder dispatched to ${patientName}.`);
+          }}
+        />
+      )}
     </div>
   );
 }
